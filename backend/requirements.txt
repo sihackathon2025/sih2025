@@ -1,0 +1,9 @@
+django
+djangorestframework
+psycopg2-binary
+django-environ
+twilio
+pandas
+scikit-learn
+xgboost
+gunicorn
