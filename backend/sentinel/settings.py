@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import dj_database_url
-from decouple import config
+from decouple import config as decouple_config
 
 from pathlib import Path
 
@@ -33,12 +33,16 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+        'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'users',
+    'data_collection',
+    'alerts',
 ]
 
 MIDDLEWARE = [
@@ -76,7 +80,7 @@ WSGI_APPLICATION = 'sentinel.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.parse(
-        config('DATABASE_URL'),
+        decouple_config('DATABASE_URL'),
         conn_max_age=600,
         ssl_require=True
     )
@@ -124,3 +128,18 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'user_id',
+}
+
+AUTH_USER_MODEL = 'users.User'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
+}
