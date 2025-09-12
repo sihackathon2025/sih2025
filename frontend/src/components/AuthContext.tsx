@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { mockUsers, User } from "@/lib/mockData";
+import axios from "axios";
+import { User } from "@/lib/mockData"; // Keep User interface, remove mockUsers
+
+const API_BASE_URL = "http://127.0.0.1:8000/api"; // Your Django backend API base URL
 
 interface AuthContextType {
   user: User | null;
@@ -13,8 +16,8 @@ interface RegisterData {
   name: string;
   email: string;
   password: string;
-  role: "asha_worker" | "ngo" | "clinic";
-  village_id: number;
+  role: "admin" | "asha_worker" | "ngo" | "clinic"; // Added admin role for registration
+  village_id?: number; // Made optional as admin might not have one
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,68 +37,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check for stored user session
     const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
+    const storedToken = localStorage.getItem("authToken");
+    if (storedUser && storedToken) {
       const userData = JSON.parse(storedUser);
       setUser(userData);
       setIsAuthenticated(true);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await axios.post(`${API_BASE_URL}/users/login/`, {
+        email,
+        password,
+      });
 
-    // Find user in mock data
-    const foundUser = mockUsers.find((u) => u.email === email);
+      const { access, refresh, user } = response.data; // Assuming your backend returns access, refresh tokens and user data
 
-    if (foundUser) {
-      // In a real app, you'd verify the password hash
-      // For demo purposes, we'll accept any password
-      setUser(foundUser);
+      localStorage.setItem("authToken", access);
+      localStorage.setItem("refreshToken", refresh);
+      localStorage.setItem("currentUser", JSON.stringify(user));
+
+      axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+      setUser(user);
       setIsAuthenticated(true);
-      localStorage.setItem("currentUser", JSON.stringify(foundUser));
       return true;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return false;
     }
-
-    return false;
   };
 
   const register = async (userData: RegisterData): Promise<boolean> => {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await axios.post(`${API_BASE_URL}/register/`, userData);
+      const { access, refresh, user } = response.data;
 
-    // Check if email already exists
-    const existingUser = mockUsers.find((u) => u.email === userData.email);
-    if (existingUser) {
+      localStorage.setItem("authToken", access);
+      localStorage.setItem("refreshToken", refresh);
+      localStorage.setItem("currentUser", JSON.stringify(user));
+
+      axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+      setUser(user);
+      setIsAuthenticated(true);
+      return true;
+    } catch (error) {
+      console.error("Registration failed:", error);
       return false;
     }
-
-    // Create new user
-    const newUser: User = {
-      user_id: mockUsers.length + 1,
-      name: userData.name,
-      role: userData.role,
-      email: userData.email,
-      village_id: userData.village_id,
-      created_at: new Date().toISOString().split("T")[0],
-    };
-
-    // Add to mock users (in real app, this would be sent to backend)
-    mockUsers.push(newUser);
-
-    setUser(newUser);
-    setIsAuthenticated(true);
-    localStorage.setItem("currentUser", JSON.stringify(newUser));
-
-    return true;
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem("currentUser");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("refreshToken");
+    delete axios.defaults.headers.common["Authorization"];
   };
 
   return (
