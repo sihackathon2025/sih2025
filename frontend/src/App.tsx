@@ -39,7 +39,7 @@ const RoleBasedRedirect = () => {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<Landing />} />
+    <Route path="/" element={<RoleBasedRedirect />} />
     <Route
       path="/admin"
       element={
