@@ -1,3 +1,4 @@
+import LocationSelector from "@/components/LocationSelector.tsx";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,7 +57,12 @@ const AshaWorkerDashboard = () => {
     severity: "",
     water_source: "",
     treatment_given: "",
+    state: "",
+    district: "",
+    village: "",
   });
+  
+  
 
   // Get reports by this ASHA worker
   const workerReports = mockHealthReports.filter(
@@ -85,7 +91,7 @@ const AshaWorkerDashboard = () => {
     workerReports.map((report) => report.village_id),
   ).size;
 
-  const handleSubmitReport = (e: React.FormEvent) => {
+  const handleSubmitReport = async (e: React.FormEvent) =>  {
     e.preventDefault();
 
     if (!newReport.patient_name || !newReport.symptoms || !newReport.severity) {
@@ -106,11 +112,36 @@ const AshaWorkerDashboard = () => {
       water_source: newReport.water_source,
       treatment_given: newReport.treatment_given,
       asha_worker_id: user?.user_id || 0,
+      state: newReport.state,
+      district: newReport.district,
+      village: newReport.village,
     };
 
     // Add to mock data (in real app, this would be sent to backend)
-    mockHealthReports.push(report);
+    //mockHealthReports.push(report);
 
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/health-reports/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(report),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to submit health report");
+      }
+  
+      const data = await response.json();
+      console.log("✅ Report submitted successfully:", data);
+    } catch (error) {
+      console.error("❌ Error submitting report:", error);
+    }
+
+     console.log(report);
+
+     
     toast.success("Health report submitted successfully!");
     setShowNewReport(false);
 
@@ -123,6 +154,9 @@ const AshaWorkerDashboard = () => {
       severity: "",
       water_source: "",
       treatment_given: "",
+      state: "",
+      district: "",
+      village: "",
     });
   };
 
@@ -236,7 +270,18 @@ const AshaWorkerDashboard = () => {
                             />
                           </div>
                         </div>
-
+                        <LocationSelector
+                           state={newReport.state}
+                           district={newReport.district}
+                           village={newReport.village}
+                           className="mb-4"
+                           onChange={(field, value) =>
+                        setNewReport((prev) => ({
+                               ...prev,
+                              [field]: value,
+                             }))
+                            }
+                          />
                         <div>
                           <Label htmlFor="gender">Gender</Label>
                           <Select
@@ -293,18 +338,29 @@ const AshaWorkerDashboard = () => {
 
                         <div>
                           <Label htmlFor="water_source">Water Source</Label>
-                          <Input
-                            id="water_source"
-                            placeholder="e.g., Well Water, River Water, Tap Water"
-                            value={newReport.water_source}
-                            onChange={(e) =>
-                              setNewReport({
-                                ...newReport,
-                                water_source: e.target.value,
+                        <Select
+                        value={newReport.water_source}
+                        onValueChange={(value) =>
+                        setNewReport({
+                          ...newReport,
+                         water_source: value,
                               })
-                            }
-                          />
-                        </div>
+                           }
+                            >
+                        <SelectTrigger>
+                        <SelectValue placeholder="Select water source" />
+                        </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="Well Water">Well Water</SelectItem>
+      <SelectItem value="Borewell Water">Borewell Water</SelectItem>
+      <SelectItem value="Municipal Water">Municipal Water</SelectItem>
+      <SelectItem value="Lake">Lake</SelectItem>
+      <SelectItem value="River">River</SelectItem>
+      <SelectItem value="Other">Other</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
 
                         <div>
                           <Label htmlFor="treatment_given">
