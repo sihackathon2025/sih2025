@@ -31,6 +31,11 @@ export interface HealthReport {
   water_source: string;
   treatment_given: string;
   asha_worker_id: number;
+
+  // ✅ new fields
+  state: string;
+  district: string;
+  village: string;
 }
 
 export interface NgoReport {
@@ -200,6 +205,9 @@ export const mockHealthReports: HealthReport[] = [
     water_source: "Well Water",
     treatment_given: "ORS, Antibiotics",
     asha_worker_id: 2,
+    state: "Nagaland",       
+    district: "Kohima",     
+    village: "Kohima",       
   },
   {
     report_id: 2,
@@ -213,6 +221,9 @@ export const mockHealthReports: HealthReport[] = [
     water_source: "River Water",
     treatment_given: "Hospitalization recommended",
     asha_worker_id: 2,
+    state: "Nagaland",      
+    district: "Kohima",     
+    village: "Kohima",       
   },
 ];
 
