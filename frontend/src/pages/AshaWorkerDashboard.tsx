@@ -1,5 +1,5 @@
 import LocationSelector from "@/components/LocationSelector.tsx";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,10 +35,13 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/components/AuthContext";
-import { HealthReport, Village, Alert } from "@/lib/mockData";
+import {
+  mockHealthReports,
+  mockVillages,
+  HealthReport,
+  getVillageById,
+} from "@/lib/mockData";
 import { toast } from "sonner";
-import API_BASE_URL from "@/apiConfig";
-import api from "@/axiosConfig";
 
 const AshaWorkerDashboard = () => {
   const { user, logout } = useAuth();
@@ -118,8 +121,20 @@ const AshaWorkerDashboard = () => {
     //mockHealthReports.push(report);
 
     try {
-      const response = await api.post("/health-reports/", report);
-      console.log("✅ Report submitted successfully:", response.data);
+      const response = await fetch("http://127.0.0.1:8000/api/data_collection/health-reports/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(report),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to submit health report");
+      }
+  
+      const data = await response.json();
+      console.log("✅ Report submitted successfully:", data);
     } catch (error) {
       console.error("❌ Error submitting report:", error);
     }

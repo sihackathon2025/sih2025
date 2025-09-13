@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import api from "@/axiosConfig";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,7 +33,14 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/components/AuthContext";
 import MapComponent from "@/components/MapComponent";
-
+import {
+  mockVillages,
+  mockAlerts,
+  mockHealthReports,
+  Village,
+  getVillageById,
+  getRiskColor,
+} from "@/lib/mockData";
 import {
   BarChart,
   Bar,
@@ -52,46 +58,9 @@ import {
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
-
-  const { data: villages, isLoading: isLoadingVillages, error: villagesError } = useQuery<Village[]>({ queryKey: ['villages'], queryFn: async () => {
-    const response = await api.get(`/data/villages/`);
-    return response.data;
-  }});
-
-  const { data: alerts, isLoading: isLoadingAlerts, error: alertsError } = useQuery<Alert[]>({ queryKey: ['alerts'], queryFn: async () => {
-    const response = await api.get(`/alerts/alerts/`);
-    return response.data;
-  }});
-
-  const { data: healthReports, isLoading: isLoadingHealthReports, error: healthReportsError } = useQuery<HealthReport[]>({ queryKey: ['healthReports'], queryFn: async () => {
-    const response = await api.get(`/data/health-reports/`);
-    return response.data;
-  }});
-
-  const [selectedVillage, setSelectedVillage] = useState<Village | undefined>(undefined);
-
-  // Set initial selected village once villages data is loaded
-  useEffect(() => {
-    if (villages && villages.length > 0 && !selectedVillage) {
-      setSelectedVillage(villages[0]);
-    }
-  }, [villages, selectedVillage]);
-
-  if (isLoadingVillages || isLoadingAlerts || isLoadingHealthReports) {
-    return <div>Loading dashboard data...</div>;
-  }
-
-  if (villagesError || alertsError || healthReportsError) {
-    return <div>Error loading data: {villagesError?.message || alertsError?.message || healthReportsError?.message}</div>;
-  }
-
-  if (!villages || !alerts || !healthReports) {
-    return <div>No data available.</div>; // Should not happen if loading and error checks pass
-  }
-
-  const getVillageById = (id: number): Village | undefined => {
-    return villages.find((village) => village.village_id === id);
-  };
+  const [selectedVillage, setSelectedVillage] = useState<Village>(
+    mockVillages[0],
+  );
   const [timeFilter, setTimeFilter] = useState("1month");
   const [showMoreInfo, setShowMoreInfo] = useState(false);
 
@@ -100,7 +69,7 @@ const AdminDashboard = () => {
   };
 
   const getVillageReports = (villageId: number) => {
-    return healthReports.filter(
+    return mockHealthReports.filter(
       (report) => report.village_id === villageId,
     );
   };
@@ -123,7 +92,7 @@ const AdminDashboard = () => {
   };
 
   const getHighRiskVillages = () => {
-    return villages.filter((village) => village.risk_level === "high");
+    return mockVillages.filter((village) => village.risk_level === "high");
   };
 
   const chartData = getSymptomDistribution(selectedVillage.village_id);
@@ -139,7 +108,7 @@ const AdminDashboard = () => {
     { month: "Mar", cases: 15 },
     { month: "Apr", cases: 22 },
     { month: "May", cases: 18 },
-    { month: "Jun", cases: selectedVillage?.total_cases || 0 }, // Use optional chaining and default to 0
+    { month: "Jun", cases: selectedVillage.total_cases },
   ];
 
   return (
@@ -171,7 +140,7 @@ const AdminDashboard = () => {
                   <Button variant="outline" className="relative">
                     Live Alerts
                     <Badge className="ml-2 bg-red-500">
-                      {alerts.length}
+                      {mockAlerts.length}
                     </Badge>
                   </Button>
                 </DialogTrigger>
@@ -183,7 +152,7 @@ const AdminDashboard = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
-                    {alerts.map((alert) => (
+                    {mockAlerts.map((alert) => (
                       <Card key={alert.alert_id}>
                         <CardHeader className="pb-3">
                           <div className="flex justify-between items-start">
@@ -251,7 +220,7 @@ const AdminDashboard = () => {
               <CardContent>
                 <MapComponent
                   onVillageSelect={handleVillageSelect}
-                  selectedVillage={selectedVillage} villages={villages}
+                  selectedVillage={selectedVillage}
                 />
               </CardContent>
             </Card>
@@ -283,105 +252,99 @@ const AdminDashboard = () => {
           {/* Right Panel - Data Analytics */}
           <div className="space-y-6">
             {/* Village Details */}
-            {selectedVillage && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{selectedVillage.village_name}</CardTitle>
-                  <CardDescription>
-                    {selectedVillage.district} | {selectedVillage.state} |
-                    Population: ~50,000
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{
-                        backgroundColor: getRiskColor(selectedVillage.risk_level),
-                      }}
-                    />
-                    <span className="font-medium capitalize">
-                      {selectedVillage.risk_level} Risk
-                    </span>
-                  </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>{selectedVillage.village_name}</CardTitle>
+                <CardDescription>
+                  {selectedVillage.district} | {selectedVillage.state} |
+                  Population: ~50,000
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-2 mb-4">
+                  <div
+                    className="w-4 h-4 rounded-full"
+                    style={{
+                      backgroundColor: getRiskColor(selectedVillage.risk_level),
+                    }}
+                  />
+                  <span className="font-medium capitalize">
+                    {selectedVillage.risk_level} Risk
+                  </span>
+                </div>
 
-                  {/* Time Filter */}
-                  <Select value={timeFilter} onValueChange={setTimeFilter}>
-                    <SelectTrigger className="mb-4">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                      <SelectItem value="1month">1 Month (Default)</SelectItem>
-                      <SelectItem value="6months">6 Months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-            )}
+                {/* Time Filter */}
+                <Select value={timeFilter} onValueChange={setTimeFilter}>
+                  <SelectTrigger className="mb-4">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="1month">1 Month (Default)</SelectItem>
+                    <SelectItem value="6months">6 Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
 
             {/* Case Overview */}
-            {selectedVillage && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Case Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Metric</TableHead>
-                        <TableHead>Count</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Total Reported Cases</TableCell>
-                        <TableCell className="font-bold">
-                          {selectedVillage?.total_cases || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Total Deaths</TableCell>
-                        <TableCell className="font-bold text-red-600">
-                          2
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Case Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      <TableHead>Count</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>Total Reported Cases</TableCell>
+                      <TableCell className="font-bold">
+                        {selectedVillage.total_cases}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Total Deaths</TableCell>
+                      <TableCell className="font-bold text-red-600">
+                        2
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
             {/* Case Type Distribution */}
-            {selectedVillage && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Disease Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Disease/Symptom</TableHead>
-                        <TableHead>Cases</TableHead>
+            <Card>
+              <CardHeader>
+                <CardTitle>Disease Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Disease/Symptom</TableHead>
+                      <TableHead>Cases</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chartData.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{item.symptom}</TableCell>
+                        <TableCell className="font-bold">
+                          {item.count}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {chartData.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.symptom}</TableCell>
-                          <TableCell className="font-bold">
-                            {item.count}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
             {/* Water Quality */}
             <Card>
@@ -405,8 +368,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Charts Section */}
-        {selectedVillage && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Symptom Distribution</CardTitle>
@@ -472,9 +434,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
-        )}
 
-        
         {/* More Information Section */}
         <div className="mt-8 text-center">
           <Button
