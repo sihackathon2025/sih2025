@@ -40,7 +40,6 @@ const Landing = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { setAuthUser } = useAuth();
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
@@ -56,105 +55,111 @@ const Landing = () => {
     village: "",
   });
 
+  const { setAuthUser } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!loginForm.email || !loginForm.password) {
-      toast.error("Please fill in both email and password");
-      return;
+  if (!loginForm.email || !loginForm.password) {
+    toast.error("Please fill in both email and password");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await api.post("/users/login/", {
+      email: loginForm.email,
+      password: loginForm.password,
+    });
+
+    const data = response.data;
+    console.log("🔁 login response:", data);
+
+    // backend expected shape: { access, refresh, user }
+    // be defensive in case keys differ slightly
+    const access = data.access ?? data.token ?? data.access_token;
+    const refresh = data.refresh ?? data.refresh_token;
+    const user = data.user ?? null;
+
+    if (access) localStorage.setItem("accessToken", access);
+    if (refresh) localStorage.setItem("refreshToken", refresh);
+
+    if (user) {
+      // update context (this also persists currentUser)
+      setAuthUser(user);
+    } else {
+      // If backend didn't send user object, try to proceed but warn
+      console.warn("Login response did not include `user` object. Response:", data);
+      // Optionally you could decode JWT here to extract claims (not implemented)
+      toast.warn("Logged in but frontend did not receive user info. Refresh may be required.");
     }
 
-    setLoading(true);
+    toast.success("Login successful!");
+    setIsLoginOpen(false);
 
-    try {
-      const response = await api.post("/users/login/", {
-        email: loginForm.email,
-        password: loginForm.password,
-      });
-
-      const data = response.data;
-
-      // ✅ Save tokens
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("refreshToken", data.refresh);
-
-      // ✅ Update AuthContext state immediately (no refresh needed)
-      setAuthUser(data.user);
-
-      toast.success("Login successful!");
-      setIsLoginOpen(false);
-
-      // ✅ RoleBasedRedirect will handle the correct dashboard redirect
-      navigate("/", { replace: true });
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.detail ||
+    // Let RoleBasedRedirect handle final dashboard routing
+    navigate("/", { replace: true });
+  } catch (error: any) {
+    console.error("Login failed:", error?.response ?? error?.message ?? error);
+    toast.error(
+      error?.response?.data?.detail ||
         error?.response?.data?.message ||
+        error?.response?.data ||
         "Login failed. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
 
-  // 🔥 handle register inside landingpage
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleRegister = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    // Debugging: log current form state before validation
-    console.log("Register Form Data:", registerForm);
-    console.log("Selected Role:", selectedRole);
+  if (registerForm.password !== registerForm.confirmPassword) {
+    toast.error("Passwords do not match");
+    return;
+  }
 
-    // Password validation
-    if (registerForm.password !== registerForm.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+  setLoading(true);
 
+  try {
+    const response = await api.post("/users/register/", {
+      name: registerForm.name,
+      role: selectedRole,
+      state: registerForm.state,
+      district: registerForm.district,
+      village: registerForm.village || "",
+      email: registerForm.email,
+      password: registerForm.password,
+      password2: registerForm.confirmPassword,
+    });
 
+    const data = response.data;
 
-    setLoading(true);
+    // ✅ Save tokens
+    if (data.access) localStorage.setItem("accessToken", data.access);
+    if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
 
-    try {
-      const response = await api.post("/users/register/", {
-        name: registerForm.name,
-        role: selectedRole,
-        state: registerForm.state,
-        district: registerForm.district,
-        village: registerForm.village || "", // optional
-        email: registerForm.email,
-        password: registerForm.password,
-        password2: registerForm.confirmPassword,
-      });
+    // ✅ Save + update context with user
+    if (data.user) setAuthUser(data.user);
 
-      const data = response.data;
+    toast.success("Registration successful!");
+    setIsRegisterOpen(false);
 
-      // Success logs
-      console.log("✅ Registered User:", data.user || data);
-      console.log("✅ Access Token:", data.access);
-
-      toast.success("Registration successful!");
-
-      // Save tokens if available
-      if (data.access) localStorage.setItem("accessToken", data.access);
-      if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
-
-      // Close modal
-      setIsRegisterOpen(false);
-    } catch (error: any) {
-      console.error("❌ Registration failed:", error.response || error.message);
-
-      toast.error(
-        error?.response?.data?.email?.[0] ||
-        error?.response?.data?.message ||
-        "Registration failed. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    // redirect to home → RoleBasedRedirect handles dashboard
+    navigate("/", { replace: true });
+  } catch (error: any) {
+    toast.error(
+      error?.response?.data?.email?.[0] ||
+      error?.response?.data?.message ||
+      "Registration failed. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
 
 

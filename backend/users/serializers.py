@@ -1,6 +1,13 @@
 from rest_framework import serializers
-from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
+from .models import User
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for returning user info"""
+    class Meta:
+        model = User
+        fields = ['user_id', 'email', 'name', 'role', 'district', 'state']
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -19,28 +26,14 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs.get('password') != attrs.pop('password2'):
             raise serializers.ValidationError({"password": "Password fields didn't match."})
-
         if len(attrs.get("password")) < 5:
             raise serializers.ValidationError({"password": "Password must be at least 5 characters long."})
-
         return attrs
 
     def create(self, validated_data):
+        """Standard: return user instance only"""
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.set_password(password)
         user.save()
-
-        refresh = RefreshToken.for_user(user)
-
-        return {
-            "user": UserSerializer(user).data,
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-        }
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['user_id', 'email', 'name', 'role', 'district', 'state']
+        return user

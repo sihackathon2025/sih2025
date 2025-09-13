@@ -176,6 +176,8 @@ REST_FRAMEWORK = {
 }
 from datetime import timedelta
 SIMPLE_JWT = {
+    "USER_ID_FIELD": "user_id",   # tumhare model ka PK field
+    "USER_ID_CLAIM": "user_id",   # token me bhi user_id store hoga
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),

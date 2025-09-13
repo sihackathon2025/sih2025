@@ -19,6 +19,11 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+
+    class Meta:
+        db_table = 'extensions"."users_user'
+
+        
     ROLE_CHOICES = [
         ('admin', 'admin'),
         ('asha_worker', 'asha_worker'),
