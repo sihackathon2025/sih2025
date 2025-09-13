@@ -40,6 +40,7 @@ const Landing = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const { setAuthUser } = useAuth();
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
