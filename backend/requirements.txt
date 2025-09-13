@@ -7,4 +7,3 @@ pandas
 scikit-learn
 xgboost
 gunicorn
-django-cors-headers

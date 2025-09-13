@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('diarrhea_cases', models.PositiveIntegerField(default=0)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('ngo', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='users.user')),
-                ('village', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='yourappname.Village')),
+                ('village', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='data_collection.Village')),
             ],
         ),
         migrations.CreateModel(
@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('date_of_reporting', models.DateField()),
                 ('cases', models.PositiveIntegerField(default=0)),
-                ('village', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='healthreports', to='yourappname.village')),
+                ('village', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='healthreports', to='data_collection.Village')),
             ],
         ),
     ]
