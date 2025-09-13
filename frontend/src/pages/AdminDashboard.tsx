@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import api from "@/axiosConfig";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,14 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/components/AuthContext";
 import MapComponent from "@/components/MapComponent";
-import {
-  mockVillages,
-  mockAlerts,
-  mockHealthReports,
-  Village,
-  getVillageById,
-  getRiskColor,
-} from "@/lib/mockData";
+
 import {
   BarChart,
   Bar,
@@ -60,17 +54,17 @@ const AdminDashboard = () => {
   const { user, logout } = useAuth();
 
   const { data: villages, isLoading: isLoadingVillages, error: villagesError } = useQuery<Village[]>({ queryKey: ['villages'], queryFn: async () => {
-    const response = await axios.get(`${API_BASE_URL}/data/villages/`);
+    const response = await api.get(`/data/villages/`);
     return response.data;
   }});
 
   const { data: alerts, isLoading: isLoadingAlerts, error: alertsError } = useQuery<Alert[]>({ queryKey: ['alerts'], queryFn: async () => {
-    const response = await axios.get(`${API_BASE_URL}/alerts/alerts/`);
+    const response = await api.get(`/alerts/alerts/`);
     return response.data;
   }});
 
   const { data: healthReports, isLoading: isLoadingHealthReports, error: healthReportsError } = useQuery<HealthReport[]>({ queryKey: ['healthReports'], queryFn: async () => {
-    const response = await axios.get(`${API_BASE_URL}/data/health-reports/`);
+    const response = await api.get(`/data/health-reports/`);
     return response.data;
   }});
 
@@ -478,7 +472,9 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
+        
         {/* More Information Section */}
         <div className="mt-8 text-center">
           <Button

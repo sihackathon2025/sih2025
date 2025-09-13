@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
 import { User } from "@/lib/mockData"; // Keep User interface, remove mockUsers
-
-const API_BASE_URL = "http://127.0.0.1:8000/api"; // Your Django backend API base URL
+import api from "@/axiosConfig";
 
 interface AuthContextType {
   user: User | null;
@@ -43,13 +41,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const userData = JSON.parse(storedUser);
       setUser(userData);
       setIsAuthenticated(true);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+      api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/users/login/`, {
+      const response = await api.post(`/users/login/`, {
         email,
         password,
       });
@@ -60,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem("refreshToken", refresh);
       localStorage.setItem("currentUser", JSON.stringify(user));
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
       setUser(user);
       setIsAuthenticated(true);
       return true;
@@ -72,14 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const register = async (userData: RegisterData): Promise<boolean> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/register/`, userData);
+      const response = await api.post(`/register/`, userData);
       const { access, refresh, user } = response.data;
 
       localStorage.setItem("authToken", access);
       localStorage.setItem("refreshToken", refresh);
       localStorage.setItem("currentUser", JSON.stringify(user));
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
       setUser(user);
       setIsAuthenticated(true);
       return true;
@@ -95,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem("currentUser");
     localStorage.removeItem("authToken");
     localStorage.removeItem("refreshToken");
-    delete axios.defaults.headers.common["Authorization"];
+    delete api.defaults.headers.common["Authorization"];
   };
 
   return (

@@ -37,10 +37,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/components/AuthContext";
 import { HealthReport, Village, Alert } from "@/lib/mockData";
 import { toast } from "sonner";
-import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
-
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+import API_BASE_URL from "@/apiConfig";
+import api from "@/axiosConfig";
 
 const AshaWorkerDashboard = () => {
   const { user, logout } = useAuth();
@@ -120,20 +118,8 @@ const AshaWorkerDashboard = () => {
     //mockHealthReports.push(report);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/health-reports/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(report),
-      });
-  
-      if (!response.ok) {
-        throw new Error("Failed to submit health report");
-      }
-  
-      const data = await response.json();
-      console.log("✅ Report submitted successfully:", data);
+      const response = await api.post("/health-reports/", report);
+      console.log("✅ Report submitted successfully:", response.data);
     } catch (error) {
       console.error("❌ Error submitting report:", error);
     }
