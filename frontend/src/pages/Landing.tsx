@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import api from "../axiosConfig";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,13 +31,13 @@ import { useAuth } from "@/components/AuthContext";
 import { mockVillages } from "@/lib/mockData";
 import { toast } from "sonner";
 
+
+
 const Landing = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [loading, setLoading] = useState(false);
-
-  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   const [loginForm, setLoginForm] = useState({
@@ -44,76 +45,117 @@ const Landing = () => {
     password: "",
   });
 
-const [registerForm, setRegisterForm] = useState({
-  name: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-  state: "",
-  district: "",
-  village: "",
-});
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    state: "",
+    district: "",
+    village: "",
+  });
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!loginForm.email || !loginForm.password) {
+      toast.error("Please fill in both email and password");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const success = await login(loginForm.email, loginForm.password);
-      if (success) {
-        toast.success("Login successful!");
-        setIsLoginOpen(false);
-        // Navigation will be handled by App.tsx based on user role
-      } else {
-        toast.error(
-          "Invalid credentials. Try admin@mdoner.gov.in with any password.",
-        );
-      }
-    } catch (error) {
-      toast.error("Login failed. Please try again.");
+      const response = await api.post("/users/login/", {
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      const data = response.data;
+
+      // ✅ Save tokens
+      localStorage.setItem("accessToken", data.access);
+      localStorage.setItem("refreshToken", data.refresh);
+
+      // ✅ Update AuthContext state immediately (no refresh needed)
+      setAuthUser(data.user);
+
+      toast.success("Login successful!");
+      setIsLoginOpen(false);
+
+      // ✅ RoleBasedRedirect will handle the correct dashboard redirect
+      navigate("/", { replace: true });
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-const handleRegister = async (e: React.FormEvent) => {
-  e.preventDefault();
 
-  if (registerForm.password !== registerForm.confirmPassword) {
-    toast.error("Passwords do not match");
-    return;
-  }
+  // 🔥 handle register inside landingpage
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!selectedRole || !registerForm.state || !registerForm.district || !registerForm.village) {
-    toast.error("Please fill all required fields");
-    return;
-  }
+    // Debugging: log current form state before validation
+    console.log("Register Form Data:", registerForm);
+    console.log("Selected Role:", selectedRole);
 
-  setLoading(true);
-
-  try {
-    const success = await register({
-      name: registerForm.name,
-      email: registerForm.email,
-      password: registerForm.password,
-      role: selectedRole as "asha_worker" | "ngo" | "clinic",
-      state: registerForm.state,
-      district: registerForm.district,
-      village: registerForm.village, // this will be village name from JSON
-    });
-
-    if (success) {
-      toast.success("Registration successful!");
-      setIsRegisterOpen(false);
-    } else {
-      toast.error("Registration failed. Email may already exist.");
+    // Password validation
+    if (registerForm.password !== registerForm.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
     }
-  } catch (error) {
-    toast.error("Registration failed. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+
+
+
+    setLoading(true);
+
+    try {
+      const response = await api.post("/users/register/", {
+        name: registerForm.name,
+        role: selectedRole,
+        state: registerForm.state,
+        district: registerForm.district,
+        village: registerForm.village || "", // optional
+        email: registerForm.email,
+        password: registerForm.password,
+        password2: registerForm.confirmPassword,
+      });
+
+      const data = response.data;
+
+      // Success logs
+      console.log("✅ Registered User:", data.user || data);
+      console.log("✅ Access Token:", data.access);
+
+      toast.success("Registration successful!");
+
+      // Save tokens if available
+      if (data.access) localStorage.setItem("accessToken", data.access);
+      if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
+
+      // Close modal
+      setIsRegisterOpen(false);
+    } catch (error: any) {
+      console.error("❌ Registration failed:", error.response || error.message);
+
+      toast.error(
+        error?.response?.data?.email?.[0] ||
+        error?.response?.data?.message ||
+        "Registration failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
 
   const getRoleDisplayName = (role: string) => {
@@ -238,25 +280,19 @@ const handleRegister = async (e: React.FormEvent) => {
                     <DialogHeader>
                       <DialogTitle>Register for Health Portal</DialogTitle>
                       <DialogDescription>
-                        Choose your role and fill in your details to get
-                        started.
+                        Choose your role and fill in your details to get started.
                       </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div>
                         <Label htmlFor="role">Select Role</Label>
-                        <Select
-                          value={selectedRole}
-                          onValueChange={setSelectedRole}
-                        >
+                        <Select value={selectedRole} onValueChange={setSelectedRole}>
                           <SelectTrigger>
                             <SelectValue placeholder="Choose your role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="asha_worker">
-                              ASHA Worker
-                            </SelectItem>
+                            <SelectItem value="asha_worker">ASHA Worker</SelectItem>
                             <SelectItem value="ngo">NGO</SelectItem>
                             <SelectItem value="clinic">Clinic</SelectItem>
                           </SelectContent>
@@ -287,21 +323,22 @@ const handleRegister = async (e: React.FormEvent) => {
                         />
                       </div>
 
-                  <div>
-  <Label>Select Location</Label>
-  <LocationSelector
-    state={registerForm.state}
-    district={registerForm.district}
-    village={registerForm.village}
-    onChange={(field, value) =>
-      setRegisterForm({
-        ...registerForm,
-        [field]: value,
-      })
-    }
-  />
-</div>
+                      <div>
+                        <Label>Select Location</Label>
+                        <LocationSelector
+                          state={registerForm.state}
+                          district={registerForm.district}
+                          village={registerForm.village}
+                          className="space-y-4"
+                          onChange={(field, value) =>
+                            setRegisterForm((prev) => ({
+                              ...prev,
+                              [field]: value,  // ✅ updates state/district/village
+                            }))
+                          }
+                        />
 
+                      </div>
 
                       <div>
                         <Label htmlFor="email">Email</Label>
@@ -336,9 +373,7 @@ const handleRegister = async (e: React.FormEvent) => {
                       </div>
 
                       <div>
-                        <Label htmlFor="confirmPassword">
-                          Confirm Password
-                        </Label>
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
                         <Input
                           id="confirmPassword"
                           type="password"
@@ -353,11 +388,7 @@ const handleRegister = async (e: React.FormEvent) => {
                         />
                       </div>
 
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={loading}
-                      >
+                      <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "Registering..." : "Register"}
                       </Button>
                     </form>
@@ -429,15 +460,19 @@ const handleRegister = async (e: React.FormEvent) => {
                         <p>Demo credentials:</p>
                         <p>
                           <strong>Admin:</strong> admin@mdoner.gov.in
+                          <strong>Admin-pass:</strong> admin@123
                         </p>
                         <p>
-                          <strong>ASHA:</strong> priya.asha@gmail.com
+                          <strong>ASHA:</strong> ram.asha@gmail.com 
+                          <strong>Asha-pass</strong> 12345
                         </p>
                         <p>
                           <strong>NGO:</strong> contact@nehealthngo.org
+                          <strong>Ngo-pass:</strong> contact123
                         </p>
                         <p>
                           <strong>Clinic:</strong> info@kohimamedical.com
+                          <strong>Clinic-pass:</strong> info123
                         </p>
                       </div>
                     </form>
