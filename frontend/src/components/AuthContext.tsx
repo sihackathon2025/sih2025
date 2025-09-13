@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User } from "@/lib/mockData"; // Keep User interface, remove mockUsers
-import api from "@/axiosConfig";
+import { mockUsers, User } from "@/lib/mockData";
 
 interface AuthContextType {
   user: User | null;
@@ -14,8 +13,8 @@ interface RegisterData {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "asha_worker" | "ngo" | "clinic"; // Added admin role for registration
-  village_id?: number; // Made optional as admin might not have one
+  role: "asha_worker" | "ngo" | "clinic";
+  village_id: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,65 +34,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Check for stored user session
     const storedUser = localStorage.getItem("currentUser");
-    const storedToken = localStorage.getItem("authToken");
-    if (storedUser && storedToken) {
+    if (storedUser) {
       const userData = JSON.parse(storedUser);
       setUser(userData);
       setIsAuthenticated(true);
-      api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const response = await api.post(`/users/login/`, {
-        email,
-        password,
-      });
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const { access, refresh, user } = response.data; // Assuming your backend returns access, refresh tokens and user data
+    // Find user in mock data
+    const foundUser = mockUsers.find((u) => u.email === email);
 
-      localStorage.setItem("authToken", access);
-      localStorage.setItem("refreshToken", refresh);
-      localStorage.setItem("currentUser", JSON.stringify(user));
-
-      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-      setUser(user);
+    if (foundUser) {
+      // In a real app, you'd verify the password hash
+      // For demo purposes, we'll accept any password
+      setUser(foundUser);
       setIsAuthenticated(true);
+      localStorage.setItem("currentUser", JSON.stringify(foundUser));
       return true;
-    } catch (error) {
-      console.error("Login failed:", error);
-      return false;
     }
+
+    return false;
   };
 
   const register = async (userData: RegisterData): Promise<boolean> => {
-    try {
-      const response = await api.post(`/register/`, userData);
-      const { access, refresh, user } = response.data;
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-      localStorage.setItem("authToken", access);
-      localStorage.setItem("refreshToken", refresh);
-      localStorage.setItem("currentUser", JSON.stringify(user));
-
-      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-      setUser(user);
-      setIsAuthenticated(true);
-      return true;
-    } catch (error) {
-      console.error("Registration failed:", error);
+    // Check if email already exists
+    const existingUser = mockUsers.find((u) => u.email === userData.email);
+    if (existingUser) {
       return false;
     }
+
+    // Create new user
+    const newUser: User = {
+      user_id: mockUsers.length + 1,
+      name: userData.name,
+      role: userData.role,
+      email: userData.email,
+      village_id: userData.village_id,
+      created_at: new Date().toISOString().split("T")[0],
+    };
+
+    // Add to mock users (in real app, this would be sent to backend)
+    mockUsers.push(newUser);
+
+    setUser(newUser);
+    setIsAuthenticated(true);
+    localStorage.setItem("currentUser", JSON.stringify(newUser));
+
+    return true;
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem("currentUser");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("refreshToken");
-    delete api.defaults.headers.common["Authorization"];
   };
 
   return (
