@@ -1,5 +1,5 @@
 import LocationSelector from "@/components/LocationSelector.tsx";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,13 +35,12 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/components/AuthContext";
-import {
-  mockHealthReports,
-  mockVillages,
-  HealthReport,
-  getVillageById,
-} from "@/lib/mockData";
+import { HealthReport, Village, Alert } from "@/lib/mockData";
 import { toast } from "sonner";
+import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const AshaWorkerDashboard = () => {
   const { user, logout } = useAuth();
