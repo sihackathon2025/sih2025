@@ -131,7 +131,7 @@ const AshaWorkerDashboard = () => {
   
       if (!response.ok) {
         throw new Error("Failed to submit health report");
-      }
+      } 
   
       const data = await response.json();
       console.log("✅ Report submitted successfully:", data);

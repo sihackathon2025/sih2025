@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import LocationSelector from "@/components/LocationSelector.tsx";
 import {
   Card,
   CardContent,
@@ -43,13 +44,15 @@ const Landing = () => {
     password: "",
   });
 
-  const [registerForm, setRegisterForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    village_id: "",
-  });
+const [registerForm, setRegisterForm] = useState({
+  name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  state: "",
+  district: "",
+  village: "",
+});
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,43 +76,45 @@ const Landing = () => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleRegister = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (registerForm.password !== registerForm.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
+  if (registerForm.password !== registerForm.confirmPassword) {
+    toast.error("Passwords do not match");
+    return;
+  }
+
+  if (!selectedRole || !registerForm.state || !registerForm.district || !registerForm.village) {
+    toast.error("Please fill all required fields");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const success = await register({
+      name: registerForm.name,
+      email: registerForm.email,
+      password: registerForm.password,
+      role: selectedRole as "asha_worker" | "ngo" | "clinic",
+      state: registerForm.state,
+      district: registerForm.district,
+      village: registerForm.village, // this will be village name from JSON
+    });
+
+    if (success) {
+      toast.success("Registration successful!");
+      setIsRegisterOpen(false);
+    } else {
+      toast.error("Registration failed. Email may already exist.");
     }
+  } catch (error) {
+    toast.error("Registration failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-    if (!selectedRole || !registerForm.village_id) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const success = await register({
-        name: registerForm.name,
-        email: registerForm.email,
-        password: registerForm.password,
-        role: selectedRole as "asha_worker" | "ngo" | "clinic",
-        village_id: parseInt(registerForm.village_id),
-      });
-
-      if (success) {
-        toast.success("Registration successful!");
-        setIsRegisterOpen(false);
-        // Navigation will be handled by App.tsx based on user role
-      } else {
-        toast.error("Registration failed. Email may already exist.");
-      }
-    } catch (error) {
-      toast.error("Registration failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -282,32 +287,21 @@ const Landing = () => {
                         />
                       </div>
 
-                      <div>
-                        <Label htmlFor="village">Village</Label>
-                        <Select
-                          value={registerForm.village_id}
-                          onValueChange={(value) =>
-                            setRegisterForm({
-                              ...registerForm,
-                              village_id: value,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select village" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mockVillages.map((village) => (
-                              <SelectItem
-                                key={village.village_id}
-                                value={village.village_id.toString()}
-                              >
-                                {village.village_name}, {village.state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <div>
+  <Label>Select Location</Label>
+  <LocationSelector
+    state={registerForm.state}
+    district={registerForm.district}
+    village={registerForm.village}
+    onChange={(field, value) =>
+      setRegisterForm({
+        ...registerForm,
+        [field]: value,
+      })
+    }
+  />
+</div>
+
 
                       <div>
                         <Label htmlFor="email">Email</Label>

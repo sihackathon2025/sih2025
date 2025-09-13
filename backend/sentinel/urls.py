@@ -19,9 +19,10 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-   path('api/', include('data_collection.urls')),
-   path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/ngoData/', include('data_collection.urls')),
     path('api/alerts/', include('alerts.urls')),
+    path('admin/', admin.site.urls),
+    path('api/users/', include('users.urls')),  # type: ignore n
 ]
