@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import LocationSelector from "@/components/LocationSelector.tsx";
 import {
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import api from "../axiosConfig";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,13 +31,13 @@ import { useAuth } from "@/components/AuthContext";
 import { mockVillages } from "@/lib/mockData";
 import { toast } from "sonner";
 
+
+
 const Landing = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [loading, setLoading] = useState(false);
-
-  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   const [loginForm, setLoginForm] = useState({
@@ -48,68 +50,119 @@ const Landing = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    village_id: "",
+    state: "",
+    district: "",
+    village: "",
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const { setAuthUser } = useAuth();
 
-    try {
-      const success = await login(loginForm.email, loginForm.password);
-      if (success) {
-        toast.success("Login successful!");
-        setIsLoginOpen(false);
-        // Navigation will be handled by App.tsx based on user role
-      } else {
-        toast.error(
-          "Invalid credentials. Try admin@mdoner.gov.in with any password.",
-        );
-      }
-    } catch (error) {
-      toast.error("Login failed. Please try again.");
-    } finally {
-      setLoading(false);
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!loginForm.email || !loginForm.password) {
+    toast.error("Please fill in both email and password");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await api.post("/users/login/", {
+      email: loginForm.email,
+      password: loginForm.password,
+    });
+
+    const data = response.data;
+    console.log("🔁 login response:", data);
+
+    // backend expected shape: { access, refresh, user }
+    // be defensive in case keys differ slightly
+    const access = data.access ?? data.token ?? data.access_token;
+    const refresh = data.refresh ?? data.refresh_token;
+    const user = data.user ?? null;
+
+    if (access) localStorage.setItem("accessToken", access);
+    if (refresh) localStorage.setItem("refreshToken", refresh);
+
+    if (user) {
+      // update context (this also persists currentUser)
+      setAuthUser(user);
+    } else {
+      // If backend didn't send user object, try to proceed but warn
+      console.warn("Login response did not include `user` object. Response:", data);
+      // Optionally you could decode JWT here to extract claims (not implemented)
+      toast.warn("Logged in but frontend did not receive user info. Refresh may be required.");
     }
-  };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+    toast.success("Login successful!");
+    setIsLoginOpen(false);
 
-    if (registerForm.password !== registerForm.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+    // Let RoleBasedRedirect handle final dashboard routing
+    navigate("/", { replace: true });
+  } catch (error: any) {
+    console.error("Login failed:", error?.response ?? error?.message ?? error);
+    toast.error(
+      error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        "Login failed. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
-    if (!selectedRole || !registerForm.village_id) {
-      toast.error("Please fill all required fields");
-      return;
-    }
 
-    setLoading(true);
+const handleRegister = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    try {
-      const success = await register({
-        name: registerForm.name,
-        email: registerForm.email,
-        password: registerForm.password,
-        role: selectedRole as "asha_worker" | "ngo" | "clinic",
-        village_id: parseInt(registerForm.village_id),
-      });
+  if (registerForm.password !== registerForm.confirmPassword) {
+    toast.error("Passwords do not match");
+    return;
+  }
 
-      if (success) {
-        toast.success("Registration successful!");
-        setIsRegisterOpen(false);
-        // Navigation will be handled by App.tsx based on user role
-      } else {
-        toast.error("Registration failed. Email may already exist.");
-      }
-    } catch (error) {
-      toast.error("Registration failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+
+  try {
+    const response = await api.post("/users/register/", {
+      name: registerForm.name,
+      role: selectedRole,
+      state: registerForm.state,
+      district: registerForm.district,
+      village: registerForm.village || "",
+      email: registerForm.email,
+      password: registerForm.password,
+      password2: registerForm.confirmPassword,
+    });
+
+    const data = response.data;
+
+    // ✅ Save tokens
+    if (data.access) localStorage.setItem("accessToken", data.access);
+    if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
+
+    // ✅ Save + update context with user
+    if (data.user) setAuthUser(data.user);
+
+    toast.success("Registration successful!");
+    setIsRegisterOpen(false);
+
+    // redirect to home → RoleBasedRedirect handles dashboard
+    navigate("/", { replace: true });
+  } catch (error: any) {
+    toast.error(
+      error?.response?.data?.email?.[0] ||
+      error?.response?.data?.message ||
+      "Registration failed. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -233,25 +286,19 @@ const Landing = () => {
                     <DialogHeader>
                       <DialogTitle>Register for Health Portal</DialogTitle>
                       <DialogDescription>
-                        Choose your role and fill in your details to get
-                        started.
+                        Choose your role and fill in your details to get started.
                       </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div>
                         <Label htmlFor="role">Select Role</Label>
-                        <Select
-                          value={selectedRole}
-                          onValueChange={setSelectedRole}
-                        >
+                        <Select value={selectedRole} onValueChange={setSelectedRole}>
                           <SelectTrigger>
                             <SelectValue placeholder="Choose your role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="asha_worker">
-                              ASHA Worker
-                            </SelectItem>
+                            <SelectItem value="asha_worker">ASHA Worker</SelectItem>
                             <SelectItem value="ngo">NGO</SelectItem>
                             <SelectItem value="clinic">Clinic</SelectItem>
                           </SelectContent>
@@ -283,30 +330,20 @@ const Landing = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="village">Village</Label>
-                        <Select
-                          value={registerForm.village_id}
-                          onValueChange={(value) =>
-                            setRegisterForm({
-                              ...registerForm,
-                              village_id: value,
-                            })
+                        <Label>Select Location</Label>
+                        <LocationSelector
+                          state={registerForm.state}
+                          district={registerForm.district}
+                          village={registerForm.village}
+                          className="space-y-4"
+                          onChange={(field, value) =>
+                            setRegisterForm((prev) => ({
+                              ...prev,
+                              [field]: value,  // ✅ updates state/district/village
+                            }))
                           }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select village" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mockVillages.map((village) => (
-                              <SelectItem
-                                key={village.village_id}
-                                value={village.village_id.toString()}
-                              >
-                                {village.village_name}, {village.state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
+
                       </div>
 
                       <div>
@@ -342,9 +379,7 @@ const Landing = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="confirmPassword">
-                          Confirm Password
-                        </Label>
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
                         <Input
                           id="confirmPassword"
                           type="password"
@@ -359,11 +394,7 @@ const Landing = () => {
                         />
                       </div>
 
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={loading}
-                      >
+                      <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "Registering..." : "Register"}
                       </Button>
                     </form>
@@ -435,15 +466,19 @@ const Landing = () => {
                         <p>Demo credentials:</p>
                         <p>
                           <strong>Admin:</strong> admin@mdoner.gov.in
+                          <strong>Admin-pass:</strong> admin@123
                         </p>
                         <p>
-                          <strong>ASHA:</strong> priya.asha@gmail.com
+                          <strong>ASHA:</strong> ram.asha@gmail.com 
+                          <strong>Asha-pass</strong> 12345
                         </p>
                         <p>
                           <strong>NGO:</strong> contact@nehealthngo.org
+                          <strong>Ngo-pass:</strong> contact123
                         </p>
                         <p>
                           <strong>Clinic:</strong> info@kohimamedical.com
+                          <strong>Clinic-pass:</strong> info123
                         </p>
                       </div>
                     </form>

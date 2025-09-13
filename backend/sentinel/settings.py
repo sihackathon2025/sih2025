@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import dj_database_url
 from decouple import config as decouple_config
+from datetime import timedelta
 
 from pathlib import Path
 
@@ -39,16 +40,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders', 
+    'rest_framework',
     'data_collection',
     'alerts',
-    'prediction',
-    'users',
-    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',           # optional - if frontend is on another origin
+    'users',                 # <--- your users app
 ]
 
 MIDDLEWARE = [
-     'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -57,6 +58,29 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# CORS (if required)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",   # Vite dev server origin - add your frontend origin(s)
+]
+# Use your custom user model
+AUTH_USER_MODEL = 'users.User'
+
+# Use bcrypt as the primary hasher
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',  # bcrypt
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+]
+
+
+# DRF + JWT settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
 
 ROOT_URLCONF = 'sentinel.urls'
 
@@ -134,6 +158,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_id',
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),   # default ~5 min hota hai
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),      # tum chahe to yahan bhi set kar sakte ho
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 AUTH_USER_MODEL = 'users.User'
@@ -145,4 +173,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     )
+}
+from datetime import timedelta
+SIMPLE_JWT = {
+    "USER_ID_FIELD": "user_id",   # tumhare model ka PK field
+    "USER_ID_CLAIM": "user_id",   # token me bhi user_id store hoga
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }

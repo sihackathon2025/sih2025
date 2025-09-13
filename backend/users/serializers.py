@@ -1,20 +1,39 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
+
+class UserSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for returning user info"""
     class Meta:
         model = User
-        fields = ('name', 'email', 'password', 'role', 'village_id')
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['user_id', 'email', 'name', 'role', 'district', 'state']
+
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'user_id', 'name', 'role', 'district', 'state',
+            'email', 'password', 'password2'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True, 'min_length': 5},
+        }
+
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.pop('password2'):
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
+        if len(attrs.get("password")) < 5:
+            raise serializers.ValidationError({"password": "Password must be at least 5 characters long."})
+        return attrs
 
     def create(self, validated_data):
-        # Hash the password before saving
-        user = User.objects.create_user(**validated_data)
+        """Standard: return user instance only"""
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
         return user
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    # To show village name instead of just the ID
-    village_name = serializers.CharField(source='village.village_name', read_only=True)
-    class Meta:
-        model = User
-        fields = ('user_id', 'name', 'email', 'role', 'village_id', 'village_name')
