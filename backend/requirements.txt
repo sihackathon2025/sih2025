@@ -1,4 +1,8 @@
 django
+django-cors-headers
+djangorestframework-simplejwt
+rest_framework_simplejwt
+python-decouple
 djangorestframework
 psycopg2-binary
 django-environ
@@ -7,3 +11,5 @@ pandas
 scikit-learn
 xgboost
 gunicorn
+dj_database_url
+

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',           # optional - if frontend is on another origin
     'users',                 # <--- your users app
+    'prediction',
 ]
 
 MIDDLEWARE = [
