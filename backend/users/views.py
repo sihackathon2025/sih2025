@@ -1,33 +1,31 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer
-from .models import User
+from rest_framework import generics, permissions, response, status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-class UserRegistrationView(APIView):
-    permission_classes = [AllowAny]
+from .models import User
+from .serializers import UserRegisterSerializer, UserSerializer
+from .token_serializers import MyTokenObtainPairSerializer
 
-    def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
+
+class RegisterView(generics.CreateAPIView):
+    """Register new user and also return tokens"""
+    serializer_class = UserRegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"message": "User registered successfully"}, status=201)
+        user = serializer.save()  # now just returns User instance
 
-class UserLoginView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-        user = User.objects.filter(email=email).first()
-
-        if user is None or not user.check_password(password):
-            return Response({'error': 'Invalid credentials'}, status=401)
-
+        # create tokens
         refresh = RefreshToken.for_user(user)
-        return Response({
-            'token': str(refresh.access_token),
-        })
+        data = {
+            "user": UserSerializer(user).data,
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+        return response.Response(data, status=status.HTTP_201_CREATED)
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
