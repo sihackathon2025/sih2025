@@ -1,4 +1,5 @@
 django
+bcrypt
 redis
 celery
 django-cors-headers
