@@ -67,6 +67,7 @@ def health_report_from_aasha(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+class VillageCreateView(generics.ListCreateAPIView):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def aasha_worker_reports(request):
@@ -163,7 +164,11 @@ def disease_stats(request):
 class VillageCreateView(generics.CreateAPIView):
     queryset = Village.objects.all()
     serializer_class = VillageSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminUser()]
+        return [IsAuthenticated()]
 
 class NgoSurveyView(APIView):
     permission_classes = [IsAuthenticated, IsNgoUser]
