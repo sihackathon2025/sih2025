@@ -18,6 +18,11 @@ from .models import HealthReport
 from .serializers import HealthReportSerializer
 from django.utils.timezone import now
 from datetime import timedelta
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from datetime import date, timedelta
+from .models import HealthReport
 
 
 
@@ -67,10 +72,10 @@ def health_report_from_aasha(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-class VillageCreateView(generics.ListCreateAPIView):
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def aasha_worker_reports(request):
+def aasha_worker_reports(request):  # for asha Worker weekly or monthly report table data fetch
     asha_worker_id = request.query_params.get("asha_worker_id")
     report_period = request.query_params.get("reportPeriod", "weekly")
     
@@ -113,11 +118,7 @@ FIXED_SYMPTOMS = [
     "Other",
 ]
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from datetime import date, timedelta
-from .models import HealthReport
+
 
 FIXED_SYMPTOMS = [
     "Fever", "Diarrhea", "Vomiting", "Headache", "Stomach Pain",
