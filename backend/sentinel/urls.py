@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/alerts/', include('alerts.urls')),
     path('api/models/', include('prediction.urls')),
+    path('api/dashboard/', include('admindashboard.urls')),
 ]

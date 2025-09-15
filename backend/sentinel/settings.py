@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'corsheaders',           # optional - if frontend is on another origin
     'users',                 # <--- your users app
     'prediction',
+    'admindashboard',
 ]
 
 MIDDLEWARE = [

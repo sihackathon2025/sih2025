@@ -67,8 +67,6 @@ def health_report_from_aasha(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-class VillageCreateView(generics.ListCreateAPIView):
-@api_view(["GET"])
 @permission_classes([AllowAny])
 def aasha_worker_reports(request):
     asha_worker_id = request.query_params.get("asha_worker_id")

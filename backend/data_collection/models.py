@@ -59,3 +59,16 @@ class Ngo_HealthReport(models.Model):
     date_of_reporting = models.DateField()
     cases = models.PositiveIntegerField(default=0)
 
+class ClinicReport(models.Model):
+    village = models.ForeignKey(Village, on_delete=models.CASCADE)
+    typhoid_cases = models.PositiveIntegerField(default=0)
+    fever_cases = models.PositiveIntegerField(default=0)
+    diarrhea_cases = models.PositiveIntegerField(default=0)
+    cholera_cases = models.PositiveIntegerField(default=0)
+    hospitalized_cases = models.PositiveIntegerField(default=0)
+    deaths_reported = models.PositiveIntegerField(default=0)
+    date_of_reporting = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Clinic Report for {self.village.village_name} on {self.date_of_reporting}"
