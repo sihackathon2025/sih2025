@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/alerts/', include('alerts.urls')),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),  # type: ignore n
+    path('api/models/', include('prediction.urls')),
 ]

@@ -1,130 +1,123 @@
-
 import ollama
 import json
-from django.db import connection
-from pydantic import BaseModel
-from typing import List, Literal, Optional
+from .models import AlertSummary
+from .pydantic_schemas import ExtractedData  # 
 
-# --- Pydantic Schemas ---
-class IndividualReport(BaseModel):
-    severity: Literal["Mild", "Moderate", "Severe"]
-    age: int
-    symptoms: List[Literal["Vomiting", "Diarrhea", "Fever"]]
-    water_quality: Literal["Poor", "Good"]
-    treatment_given: Optional[Literal["Yes", "None"]]
-
-
-class ExtractedData(BaseModel):
-    individuals: List[IndividualReport]
-
-
-# --- Risk Calculation ---
-def calculate_outbreak_risk(individuals: List[IndividualReport]):
+def calculate_outbreak_risk(individuals):
+    """
+    Calculates the outbreak risk percentage and level.
+    """
     if not individuals:
         return 0.0, "Very Low"
 
-    total_score = 0
-    max_score = 39  # Max possible score per person
+    total_individual_score = 0
+    max_possible_score = 39  #  individual
 
-    for p in individuals:
-        s = 0
-        if p.severity == "Severe": s += 10
-        elif p.severity == "Moderate": s += 5
-        elif p.severity == "Mild": s += 1
+    for person in individuals:
+        s_individual = 0
+        if person.severity == "Severe":
+            s_individual += 10
+        elif person.severity == "Moderate":
+            s_individual += 5
+        elif person.severity == "Mild":
+            s_individual += 1
 
-        if p.age < 10 or p.age > 60: s += 5
-        for symptom in p.symptoms:
+        if person.age < 10 or person.age > 60:
+            s_individual += 5
+
+        for symptom in person.symptoms:
             if symptom in ["Vomiting", "Diarrhea", "Fever"]:
-                s += 3
-        if p.water_quality == "Poor": s += 5
-        if p.treatment_given == "None": s += 10
+                s_individual += 3
 
-        total_score += s
+        if person.water_quality == "Poor":
+            s_individual += 5
 
-    avg_score = total_score / len(individuals)
-    risk_percent = (avg_score / max_score) * 100
+        if person.treatment_given == "None":
+            s_individual += 10
 
-    if risk_percent > 80:
+        total_individual_score += s_individual
+
+    avg_score = total_individual_score / len(individuals)
+    r_outbreak = (avg_score / max_possible_score) * 100
+
+    if r_outbreak > 80:
         level = "Very High"
-    elif risk_percent > 60:
+    elif r_outbreak > 60:
         level = "High"
-    elif risk_percent > 40:
+    elif r_outbreak > 40:
         level = "Moderate"
-    elif risk_percent > 20:
+    elif r_outbreak > 20:
         level = "Low"
     else:
         level = "Very Low"
 
-    return risk_percent, level
+    return r_outbreak, level
 
 
-# --- Fetch & Process Alert ---
-def generate_alert_summary(alert_id: int):
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT village_name, district_name, state_name, rbalert
-            FROM extensions.prediction_earlywarningalert
-            WHERE id = %s
-        """, [alert_id])
-        row = cursor.fetchone()
-
-    if not row:
-        return {"error": "Alert not found"}
-
-    village, district, state, rbalert = row
-
-    # --- First LLM call: extract structured data ---
-    extraction_prompt = f"""
-    Analyze the following outbreak alerts and extract structured data.
-
-    JSON Schema:
-    {json.dumps(ExtractedData.model_json_schema(), indent=2)}
-
-    **Alert Data:**
-    {rbalert}
-
-    Instructions:
-    - Fill all fields (`severity`, `age`, `symptoms`, `water_quality`, `treatment_given`).
-    - Default `treatment_given` = "Yes" unless explicitly "None".
-    - Output ONLY valid JSON.
+def process_alert(alert_obj):
     """
+    Takes an EarlyWarningAlert object, processes it with the model,
+    calculates risk, generates a summary, and stores it in AlertSummary.
+    """
+
+    rbalert_text = alert_obj.rbalert
+
+    #  Extract structured data
+    extraction_prompt = f"""Analyze the following rule-based alert and extract structured JSON data 
+according to this schema: {json.dumps(ExtractedData.model_json_schema(), indent=2)}
+
+Alert:
+{rbalert_text}
+
+Output only the JSON, no extra text.
+"""
 
     extraction_response = ollama.chat(
         model="gemma3:1b",
         messages=[{"role": "user", "content": extraction_prompt}],
         format="json",
-        options={"temperature": 0}
+        options={"temperature": 0},
     )
 
-    extracted_json = extraction_response["message"]["content"]
-    validated_data = ExtractedData.model_validate_json(extracted_json)
+    extracted_data_json = extraction_response["message"]["content"]
+    validated_data = ExtractedData.model_validate_json(extracted_data_json)
 
-    # --- Risk Calculation ---
-    risk_percent, risk_level = calculate_outbreak_risk(validated_data.individuals)
-    risk_output = f"{risk_level} ({risk_percent:.1f}%)"
+  #Calculate risk
+    risk_percentage, risk_level = calculate_outbreak_risk(validated_data.individuals)
 
-    # --- Second LLM call: Summary ---
-    summary_prompt = f"""
-    You are an analyst writing a simple, actionable summary for NGO/ASHA workers.
+    #plain-language summary
+    summary_prompt = f"""You are an analyst for the Ministry of the North Eastern Region.
 
-    **Raw Alerts:** {rbalert}
-    **Calculated Risk:** {risk_output}
+Context:
+- Original Alerts: {rbalert_text}
+- Calculated Risk: {risk_level} ({risk_percentage:.1f}%)
 
-    Write a short, clear, and actionable summary.
-    """
+Task:
+Write a concise, clear, and actionable summary to guide ASHA and NGO workers.
+Do NOT mention that this is generated by AI.
+Do NOT include casual, metacommentary, explanations, or other information that is not relevant to the risk assessment.
+Focus on instructions, recommendations, and what actions should be taken immediately.
+Use professional, authoritative language as if issued by the Ministry.
+"""
 
     summary_response = ollama.generate(
         model="gemma3:1b",
         prompt=summary_prompt,
-        stream=False
+        stream=False,
     )
-    summary_text = summary_response["response"]
+
+    summary_output = summary_response["response"]
+
+    AlertSummary.objects.create(
+        alert=alert_obj,
+        risk_percentage=risk_percentage,
+        risk_level=risk_level,
+        summary_text=summary_output,
+    )
 
     return {
-        "village_name": village,
-        "district_name": district,
-        "state_name": state,
+        "risk_percentage": risk_percentage,
         "risk_level": risk_level,
-        "risk_percentage": round(risk_percent, 1),
-        "summary": summary_text.strip()
+        "summary": summary_output,
     }
+

@@ -1,4 +1,6 @@
 django
+redis
+celery
 django-cors-headers
 djangorestframework-simplejwt
 rest_framework_simplejwt
