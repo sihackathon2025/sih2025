@@ -1,5 +1,19 @@
 from rest_framework import serializers
 from .models import NgoSurvey, Village
+from .models import HealthReport
+
+class HealthReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HealthReport
+        fields = [
+            "date_of_reporting",
+            "patient_name",
+            "age",
+            "symptoms",
+            "severity",
+            "water_source",
+        ]
+
 
 class VillageSerializer(serializers.ModelSerializer):
     class Meta:
