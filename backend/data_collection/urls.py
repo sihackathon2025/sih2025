@@ -1,9 +1,11 @@
 from django.urls import path
-from .views import NgoSurveyView, NgoDashboardSummaryView, AdminMapDataView, VillageCreateView, health_report_from_aasha
+from .views import NgoSurveyView, NgoDashboardSummaryView, AdminMapDataView, VillageCreateView, health_report_from_aasha , aasha_worker_reports, disease_stats
 
 
 
 urlpatterns = [
+    path("disease_stats/", disease_stats, name="disease_stats"),
+    path("aasha_worker_reports/", aasha_worker_reports, name="aasha_worker_reports"),
     path("health-reports/", health_report_from_aasha, name="health_report_from_aasha"),
     path('villages', VillageCreateView.as_view(), name='create-village'),
     path('ngo-surveys', NgoSurveyView.as_view(), name='ngo-surveys'),
