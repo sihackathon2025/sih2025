@@ -176,6 +176,29 @@ def aggregate_for_village(village_obj: Village, months_back: int = 6):
     else:
         risk_level = "Very Low"
 
+    # --- New Fields Calculation ---
+
+    # Water Quality Assessment
+    latest_ngo_survey = nq.order_by('-created_at').first()
+    if latest_ngo_survey and latest_ngo_survey.clean_drinking_water is not None:
+        latest_water_assessment_status = "Good" if latest_ngo_survey.clean_drinking_water else "Poor"
+        latest_water_assessment_date = latest_ngo_survey.created_at.date() # Extract date part
+    else:
+        latest_water_assessment_status = None
+        latest_water_assessment_date = None
+
+    # Detailed Hospitalized Cases (placeholders)
+    current_admissions = clinic_counts["hospitalized_sum"] or 0
+    critical_cases = 0 # Placeholder
+    recovered_cases = 0 # Placeholder
+
+    # Awareness Campaigns (placeholders)
+    completed_campaigns = ngo_agg["awareness_any"] or 0 # Count of surveys with awareness_campaigns=True
+    ongoing_campaigns = 0 # Placeholder
+    planned_campaigns = 0 # Placeholder
+
+    # --- End New Fields Calculation ---
+
     # 9) Save/update VillageDashboard (atomic)
     with transaction.atomic():
         obj, created = VillageDashboard.objects.update_or_create(
@@ -191,6 +214,15 @@ def aggregate_for_village(village_obj: Village, months_back: int = 6):
                 "severity_distribution": severity_pct,
                 "monthly_trend": monthly_trend,
                 "last_aggregated_at": now(),
+                "population": village_obj.population, # New field
+                "latest_water_assessment_status": latest_water_assessment_status, # New field
+                "latest_water_assessment_date": latest_water_assessment_date, # New field
+                "current_admissions": current_admissions, # New field
+                "critical_cases": critical_cases, # New field
+                "recovered_cases": recovered_cases, # New field
+                "completed_campaigns": completed_campaigns, # New field
+                "ongoing_campaigns": ongoing_campaigns, # New field
+                "planned_campaigns": planned_campaigns, # New field
             }
         )
 

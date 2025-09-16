@@ -16,5 +16,14 @@ class VillageDashboardSerializer(serializers.ModelSerializer):
             "risk_level", "risk_percentage", "latest_rb_alerts",
             "symptom_distribution", "severity_distribution", "monthly_trend",
             "last_aggregated_at",
+            "population",
+            "latest_water_assessment_status",
+            "latest_water_assessment_date",
+            "current_admissions",
+            "critical_cases",
+            "recovered_cases",
+            "completed_campaigns",
+            "ongoing_campaigns",
+            "planned_campaigns",
         ]
 

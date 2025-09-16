@@ -27,6 +27,20 @@ class VillageDashboard(models.Model):
     # monthly trend example: {"2025-03": 12, "2025-04": 8, ...}
     monthly_trend = models.JSONField(default=dict)
 
+    # Water Quality Assessment
+    latest_water_assessment_status = models.CharField(max_length=50, null=True, blank=True)
+    latest_water_assessment_date = models.DateField(null=True, blank=True)
+
+    # Detailed Hospitalized Cases
+    current_admissions = models.IntegerField(default=0)
+    critical_cases = models.IntegerField(default=0)
+    recovered_cases = models.IntegerField(default=0)
+
+    # Awareness Campaigns
+    completed_campaigns = models.IntegerField(default=0)
+    ongoing_campaigns = models.IntegerField(default=0)
+    planned_campaigns = models.IntegerField(default=0)
+
     # meta
     last_aggregated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

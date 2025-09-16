@@ -50,10 +50,11 @@ def generate_fake_data():
         village, created = Village.objects.get_or_create(
             village_name=village_name,
             defaults={
-                'state': state,
-                'district': district,
+                'state_name': state,
+                'district_name': district,
                 'latitude': latitude,
-                'longitude': longitude
+                'longitude': longitude,
+                'population': random.randint(1000, 10000) # Random population between 1000 and 10000
             }
         )
         villages.append(village)
@@ -84,9 +85,7 @@ def generate_fake_data():
                 water_source=random.choice(water_sources),
                 treatment_given=random.choice(["Paracetamol", "ORS", "Antibiotics", "Rest"]),
                 asha_worker_id=fake_asha_user.user_id, # Assuming ASHA worker ID is user ID
-                state=village.state,
-                district=village.district,
-                village=village.village_name, # Use village name for HealthReport
+                village=village, # Assign the Village object directly
             )
 
         # Generate ClinicReports (some old, some recent)
