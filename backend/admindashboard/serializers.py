@@ -7,6 +7,8 @@ class VillageDashboardSerializer(serializers.ModelSerializer):
     village_name = serializers.CharField(source="village.village_name", read_only=True)
     district = serializers.CharField(source="village.district_name", read_only=True)
     state = serializers.CharField(source="village.state_name", read_only=True)
+    latitude = serializers.FloatField(source="village.latitude", read_only=True)
+    longitude = serializers.FloatField(source="village.longitude", read_only=True)
 
     class Meta:
         model = VillageDashboard
@@ -25,5 +27,7 @@ class VillageDashboardSerializer(serializers.ModelSerializer):
             "completed_campaigns",
             "ongoing_campaigns",
             "planned_campaigns",
+            "latitude", # Add latitude to fields
+            "longitude", # Add longitude to fields
         ]
 
