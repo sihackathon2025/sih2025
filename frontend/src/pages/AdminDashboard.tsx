@@ -107,6 +107,9 @@ const AdminDashboard = () => {
   const [timeFilter, setTimeFilter] = useState("1month");
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [villageSearchTerm, setVillageSearchTerm] = useState("");
+  const [showAllHighRisk, setShowAllHighRisk] = useState(false);
+  const [showAllModerateRisk, setShowAllModerateRisk] = useState(false);
+  const [showAllLowRisk, setShowAllLowRisk] = useState(false);
 
   const filteredVillages = useMemo(() => {
     return allVillagesData.filter(village =>
@@ -189,9 +192,19 @@ const AdminDashboard = () => {
     return Object.entries(selectedVillageData.monthly_trend).map(([month, cases]) => ({ month, cases }));
   }, [selectedVillageData]);
 
-  // Filter for high-risk villages
+  // Filter for risk villages
   const highRiskVillages = useMemo(() =>
     allVillagesData.filter(v => v.risk_level === "High" || v.risk_level === "Very High"),
+    [allVillagesData]
+  );
+
+  const moderateRiskVillages = useMemo(() =>
+    allVillagesData.filter(v => v.risk_level === "Moderate"),
+    [allVillagesData]
+  );
+
+  const lowRiskVillages = useMemo(() =>
+    allVillagesData.filter(v => v.risk_level === "Low" || v.risk_level === "Very Low"),
     [allVillagesData]
   );
 
@@ -299,7 +312,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {highRiskVillages.length > 0 ? highRiskVillages.map((village) => (
+                  {(showAllHighRisk ? highRiskVillages : highRiskVillages.slice(0, 3)).map((village) => (
                     <Button
                       key={village.id}
                       variant="outline"
@@ -308,8 +321,66 @@ const AdminDashboard = () => {
                     >
                       {village.village_name} ({village.total_cases} cases)
                     </Button>
-                  )) : <p>No high-risk villages at the moment.</p>}
+                  ))}
+                  {highRiskVillages.length === 0 && <p>No high-risk villages at the moment.</p>}
                 </div>
+                {highRiskVillages.length > 3 && (
+                  <Button variant="link" className="mt-2 px-0" onClick={() => setShowAllHighRisk(!showAllHighRisk)}>
+                    {showAllHighRisk ? "Show Less" : `Show ${highRiskVillages.length - 3} More`}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-yellow-600">Moderate Risk Villages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {(showAllModerateRisk ? moderateRiskVillages : moderateRiskVillages.slice(0, 3)).map((village) => (
+                    <Button
+                      key={village.id}
+                      variant="outline"
+                      className="border-yellow-200 text-yellow-700 hover:bg-yellow-50"
+                      onClick={() => handleVillageSelect(village.id)}
+                    >
+                      {village.village_name} ({village.total_cases} cases)
+                    </Button>
+                  ))}
+                  {moderateRiskVillages.length === 0 && <p>No moderate-risk villages at the moment.</p>}
+                </div>
+                {moderateRiskVillages.length > 3 && (
+                  <Button variant="link" className="mt-2 px-0" onClick={() => setShowAllModerateRisk(!showAllModerateRisk)}>
+                    {showAllModerateRisk ? "Show Less" : `Show ${moderateRiskVillages.length - 3} More`}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-green-600">Low Risk Villages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {(showAllLowRisk ? lowRiskVillages : lowRiskVillages.slice(0, 3)).map((village) => (
+                    <Button
+                      key={village.id}
+                      variant="outline"
+                      className="border-green-200 text-green-700 hover:bg-green-50"
+                      onClick={() => handleVillageSelect(village.id)}
+                    >
+                      {village.village_name} ({village.total_cases} cases)
+                    </Button>
+                  ))}
+                  {lowRiskVillages.length === 0 && <p>No low-risk villages at the moment.</p>}
+                </div>
+                {lowRiskVillages.length > 3 && (
+                  <Button variant="link" className="mt-2 px-0" onClick={() => setShowAllLowRisk(!showAllLowRisk)}>
+                    {showAllLowRisk ? "Show Less" : `Show ${lowRiskVillages.length - 3} More`}
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

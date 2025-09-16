@@ -151,19 +151,19 @@ def aggregate_for_village(village_obj: Village, months_back: int = 6):
     # severity_score (0-100)
     severity_score = min(100, (severe_count * 3 + moderate_count * 2 + mild_count * 1) / max(1, (severe_count + moderate_count + mild_count) * 3) * 100)
 
-    # case_score: normalized by a threshold (assume 20 cases => 100%)
-    case_score = min(100, (total_cases / 20) * 100)
+    # case_score: normalized by a threshold (assume 50 cases => 100%)
+    case_score = min(100, (total_cases / 50) * 100)
 
     # water risk: if any NGO reports clean_drinking_water == False -> add penalty
     water_risk_flag = nq.filter(clean_drinking_water=False).exists()
-    water_penalty = 20 if water_risk_flag else 0
+    water_penalty = 10 if water_risk_flag else 0
 
     # untreated risk: if rb text contains 'untreated' or 'no treatment' -> penalty
     untreated_flag = "no treatment" in (latest_rb_text or "").lower() or "untreated" in (latest_rb_text or "").lower()
-    untreated_penalty = 15 if untreated_flag else 0
+    untreated_penalty = 10 if untreated_flag else 0
 
     # final risk percentage aggregate
-    risk_percentage = min(100.0, (0.6 * severity_score) + (0.3 * case_score) + water_penalty + untreated_penalty)
+    risk_percentage = min(100.0, (0.5 * severity_score) + (0.2 * case_score) + water_penalty + untreated_penalty)
     # normalize to 0-100
     if risk_percentage > 90:
         risk_level = "Very High"
@@ -214,7 +214,7 @@ def aggregate_for_village(village_obj: Village, months_back: int = 6):
                 "severity_distribution": severity_pct,
                 "monthly_trend": monthly_trend,
                 "last_aggregated_at": now(),
-                "population": village_obj.population, # New field
+                "population": village_obj.population or 0, # New field
                 "latest_water_assessment_status": latest_water_assessment_status, # New field
                 "latest_water_assessment_date": latest_water_assessment_date, # New field
                 "current_admissions": current_admissions, # New field

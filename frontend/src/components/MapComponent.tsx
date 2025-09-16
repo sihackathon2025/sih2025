@@ -77,7 +77,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ villages, onVillageSelect, 
   const selectedVillageData = villages.find(v => v.id === selectedVillageId);
 
   return (
-    <div className="relative w-full h-96 rounded-lg border-2 border-gray-200 overflow-hidden">
+    <div className="relative w-full h-96 rounded-lg border-2 border-gray-200 overflow-hidden z-0">
       <MapContainer center={center} zoom={7} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
