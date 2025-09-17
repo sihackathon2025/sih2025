@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Lightweight serializer for returning user info"""
     class Meta:
         model = User
-        fields = ['user_id', 'email', 'name', 'role', 'district', 'state']
+        fields = ['user_id', 'email', 'name', 'role', 'district', 'state','village']
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -17,7 +17,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'user_id', 'name', 'role', 'district', 'state',
-            'email', 'password', 'password2'
+            'email', 'password', 'password2', 'village'
         ]
         extra_kwargs = {
             'password': {'write_only': True, 'min_length': 5},

@@ -337,7 +337,7 @@ const Landing = () => {
                       </div>
 
                       <div>
-                        <Label>Select Location</Label>
+                          <Label>Select Location</Label>
                         <LocationSelector
                           state={registerForm.state}
                           district={registerForm.district}
