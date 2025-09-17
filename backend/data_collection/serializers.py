@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import NgoSurvey, Village, HealthReport
+from users.models import User
 
 class VillageSerializer(serializers.ModelSerializer):
     class Meta:
