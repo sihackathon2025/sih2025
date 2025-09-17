@@ -59,6 +59,7 @@ import {
   Activity,
   Eye,
   Wind,
+  BrainCircuit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,8 +100,21 @@ interface AlertType {
   created_at: string;
 }
 
+interface AlertSummaryType {
+  id: number;
+  village: string;
+  district: string;
+  state: string;
+  risk_percentage: number;
+  risk_level: "Very Low" | "Low" | "Moderate" | "High" | "Very High";
+  summary: string;
+  created_at: string;
+}
+
 // --- HELPER & CHILD COMPONENTS ---
-const getRiskColor = (riskLevel: VillageDashboardType["risk_level"]) => {
+const getRiskColor = (
+  riskLevel: VillageDashboardType["risk_level"] | AlertSummaryType["risk_level"],
+) => {
   const colors: { [key: string]: string } = {
     "Very Low": "#22c55e",
     Low: "#84cc16",
@@ -109,6 +123,40 @@ const getRiskColor = (riskLevel: VillageDashboardType["risk_level"]) => {
     "Very High": "#ef4444",
   };
   return colors[riskLevel] || "#6b7280";
+};
+
+const getRiskClass = (
+  riskLevel: AlertSummaryType["risk_level"],
+  type: "bg" | "text" | "border",
+) => {
+  const classes = {
+    "Very High": {
+      bg: "hover:bg-red-100",
+      text: "text-red-800",
+      border: "border-red-500",
+    },
+    High: {
+      bg: "hover:bg-orange-100",
+      text: "text-orange-800",
+      border: "border-orange-500",
+    },
+    Moderate: {
+      bg: "hover:bg-yellow-100",
+      text: "text-yellow-800",
+      border: "border-yellow-500",
+    },
+    Low: {
+      bg: "hover:bg-lime-100",
+      text: "text-lime-800",
+      border: "border-lime-500",
+    },
+    "Very Low": {
+      bg: "hover:bg-green-100",
+      text: "text-green-800",
+      border: "border-green-500",
+    },
+  };
+  return classes[riskLevel]?.[type] || "";
 };
 
 const StatCard = ({
@@ -220,6 +268,11 @@ const AdminDashboard = () => {
       created_at: "2025-09-14T14:30:00Z",
     },
   ]);
+  const [alertSummaries, setAlertSummaries] = useState<AlertSummaryType[]>([]);
+  const [selectedSummary, setSelectedSummary] =
+    useState<AlertSummaryType | null>(null);
+  const [isPredictionDialogOpen, setPredictionDialogOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState("6months");
@@ -233,6 +286,7 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
         setError(null);
+
         const villagesResponse = await axios.get<VillageDashboardType[]>(
           "/dashboard/villages/",
         );
@@ -242,6 +296,14 @@ const AdminDashboard = () => {
         setAllVillagesData(sortedVillages);
         if (sortedVillages.length > 0) {
           setSelectedVillageId(sortedVillages[0].id);
+        }
+
+        const summariesResponse = await axios.get<{ data: AlertSummaryType[] }>(
+          "/prediction/summaries/",
+        );
+        setAlertSummaries(summariesResponse.data.data);
+        if (summariesResponse.data.data.length > 0) {
+          setSelectedSummary(summariesResponse.data.data[0]);
         }
       } catch (err) {
         console.error("Error fetching initial data:", err);
@@ -388,6 +450,113 @@ const AdminDashboard = () => {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              <Dialog
+                open={isPredictionDialogOpen}
+                onOpenChange={setPredictionDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <BrainCircuit className="h-4 w-4 mr-2" />
+                    Alert Prediction
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>AI-Powered Alert Predictions</DialogTitle>
+                    <DialogDescription>
+                      Click on a village to view the detailed AI-generated
+                      summary and recommendations.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid grid-cols-3 gap-4 h-full overflow-hidden pt-4">
+                    <div className="col-span-1 flex flex-col border-r pr-4 overflow-y-auto">
+                      <div className="text-sm font-semibold mb-2 px-2">
+                        All Village Summaries
+                      </div>
+                      <div className="flex-grow space-y-1">
+                        {alertSummaries.map((summary) => (
+                          <button
+                            key={summary.id}
+                            onClick={() => setSelectedSummary(summary)}
+                            className={cn(
+                              "w-full text-left p-2 rounded-md border-l-4 transition-colors",
+                              getRiskClass(summary.risk_level, "bg"),
+                              getRiskClass(summary.risk_level, "border"),
+                              selectedSummary?.id === summary.id
+                                ? "bg-slate-200"
+                                : "bg-transparent",
+                            )}
+                          >
+                            <div className="font-semibold">
+                              {summary.village}
+                            </div>
+                            <div className="text-xs text-slate-600">
+                              {summary.risk_level} Risk (
+                              {summary.risk_percentage.toFixed(1)}%)
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="col-span-2 overflow-y-auto">
+                      {selectedSummary ? (
+                        <div className="space-y-4">
+                          <Card
+                            style={{
+                              borderLeft: `4px solid ${getRiskColor(selectedSummary.risk_level)}`,
+                            }}
+                          >
+                            <CardHeader>
+                              <CardTitle className="text-xl">
+                                {selectedSummary.village}
+                              </CardTitle>
+                              <CardDescription>
+                                {selectedSummary.district},{" "}
+                                {selectedSummary.state}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <Badge
+                                style={{
+                                  backgroundColor: getRiskColor(
+                                    selectedSummary.risk_level,
+                                  ),
+                                }}
+                                className="text-white"
+                              >
+                                {selectedSummary.risk_level} Risk (
+                                {selectedSummary.risk_percentage.toFixed(1)}%)
+                              </Badge>
+                              <p className="text-xs text-slate-500 mt-2">
+                                Generated on:{" "}
+                                {new Date(
+                                  selectedSummary.created_at,
+                                ).toLocaleString()}
+                              </p>
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Actionable Summary</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div dangerouslySetInnerHTML={{ __html: selectedSummary.summary }} />
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-slate-500">
+                            Select a village to see the summary.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <Button size="sm" className="bg-green-600 hover:bg-green-700">
                 Send Alert
               </Button>
