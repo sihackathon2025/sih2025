@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data_collection', '0004_initial_data_collection'),
+        ('data_collection', '0004_remove_healthreport_district_and_more'),
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='village',
-            name='population',
-            field=models.IntegerField(blank=True, null=True),
-        ),
+        # migrations.AddField(
+        #     model_name='village',
+        #     name='population',
+        #     field=models.IntegerField(blank=True, null=True),
+        # ),
     ]

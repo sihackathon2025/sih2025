@@ -1,6 +1,8 @@
-import axios from "axios";
+import axios from 'axios';
 import { getAccessToken, clearAuth } from "./api/authConfig";
-import API_BASE_URL from "./apiConfig";
+import API_BASE_URL from './apiConfig';
+
+
 const instance = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
@@ -15,7 +17,7 @@ instance.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
 // ✅ Response Interceptor → agar unauthorized mila to logout
@@ -27,6 +29,6 @@ instance.interceptors.response.use(
       window.location.href = "/"; // tumhare login page ka path
     }
     return Promise.reject(error);
-  },
+  }
 );
 export default instance;

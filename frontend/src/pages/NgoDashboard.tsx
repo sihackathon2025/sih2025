@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,29 +11,119 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/components/AuthContext';
 import { mockVillages, mockNgoReports, NgoReport, getVillageById } from '@/lib/mockData';
 import { toast } from 'sonner';
+import LocationSelector from "@/components/LocationSelector.tsx";
+import { getCurrentUser, clearAuth } from "../api/authConfig";
+import api from "../axiosConfig";
 
 const NgoDashboard = () => {
   const { user, logout } = useAuth();
   const [showAddData, setShowAddData] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [reportPeriod, setReportPeriod] = useState('weekly');
+  const [villages, setVillages] = useState<{ village_id: number; village_name: string }[]>([]);
+  const [totalVillages, setTotalVillages] = useState(0);
+  const [surveyedVillages, setSurveyedVillages] = useState(0);
+  const [pendingVillages, setPendingVillages] = useState(0);
+  const [reportPeriod, setReportPeriod] = useState<"weekly" | "monthly">("weekly");
+  const [surveyedData, setSurveyedData] = useState<any[]>([]);
 
   const [newReport, setNewReport] = useState({
-    village_id: '',
+    village_id: 0,
     clean_drinking_water: false,
-    toilet_coverage: '',
-    waste_disposal_system: '',
+    toilet_coverage: "",
+    waste_disposal_system: false,
     flooding_waterlogging: false,
     awareness_campaigns: false,
-    typhoid_cases: '',
-    fever_cases: '',
-    diarrhea_cases: ''
+    typhoid_cases: "",
+    fever_cases: "",
+    diarrhea_cases: "",
   });
 
-  // Get villages in the NGO's district (simplified - using all villages for demo)
-  const totalVillages = mockVillages.length;
-  const surveyedVillages = mockNgoReports.length;
-  const pendingVillages = totalVillages - surveyedVillages;
+  const [stats, setStats] = useState({
+    total_villages: 0,
+    high_alert_villages: 0,
+    total_disease_cases: 0,
+    villages_without_clean_water: 0,
+  });
+
+
+  useEffect(() => {
+    const fetchSurveyedData = async () => {
+      try {
+        const res = await api.get("/ngoData/surveyed-villages/");
+        // Add a static alert_level for now
+        const updated = res.data.map((item: any) => ({
+          village_name: item.village,
+          clean_drinking_water: item.clean_water,
+          toilet_coverage: item.toilet_coverage,
+          waste_disposal_system: item.waste_disposal,
+          flooding_waterlogging: item.flooding,
+          awareness_campaigns: item.awareness,
+          typhoid_cases: item.typhoid_cases,
+          fever_cases: item.fever_cases,
+          diarrhea_cases: item.diarrhea_cases,
+          alert_level: "medium", // 🔹 static for now
+        }));
+        setSurveyedData(updated);
+      } catch (err) {
+        console.error("Error fetching surveyed villages:", err);
+      }
+    };
+
+    fetchSurveyedData();
+  }, []);
+
+
+  // ✅ Fetch summary statistics from API
+  const fetchStatistics = async () => {
+    try {
+      const res = await api.get("/ngoData/summary-statistics/");
+      setStats(res.data);
+    } catch (err: any) {
+      toast.error("Failed to fetch summary statistics");
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatistics();
+  }, []);
+
+  // ✅ Fetch summary data
+  const fetchSummary = async () => {
+    try {
+      const res = await api.get("/ngoData/ngo-dashboard/summary");
+      const data = res.data;
+      setTotalVillages(data.total_villages);
+      setSurveyedVillages(data.surveyed_count);
+      setPendingVillages(data.pending_count);
+    } catch (err: any) {
+      toast.error("Failed to fetch survey summary");
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSummary();
+  }, []);
+
+
+
+
+  // ✅ Fetch villages on component mount
+  useEffect(() => {
+    const fetchVillages = async () => {
+      try {
+        const res = await api.get("/ngoData/villages/dropdown");
+        setVillages(res.data);
+      } catch (err: any) {
+        toast.error("Failed to fetch villages");
+      }
+    };
+    fetchVillages();
+  }, []);
+
+
+
 
   const getSurveyedVillageData = () => {
     return mockNgoReports.map(report => {
@@ -57,18 +147,26 @@ const NgoDashboard = () => {
     });
   };
 
-  const handleSubmitReport = (e: React.FormEvent) => {
+  // ✅ Submit Handler
+  // ✅ Handle form submission
+  const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newReport.village_id) {
-      toast.error('Please select a village');
+      toast.error("Please select a village");
       return;
     }
 
-    // Create new report
-    const report: NgoReport = {
-      ngo_id: user?.user_id || 0,
-      village_id: parseInt(newReport.village_id),
+    const user = getCurrentUser();
+    if (!user) {
+      toast.error("User not logged in");
+      clearAuth();
+      return;
+    }
+
+    const payload = {
+      ngo_id: user.user_id,
+      village_id: newReport.village_id, // send village_id here
       clean_drinking_water: newReport.clean_drinking_water,
       toilet_coverage: parseInt(newReport.toilet_coverage) || 0,
       waste_disposal_system: newReport.waste_disposal_system,
@@ -77,27 +175,29 @@ const NgoDashboard = () => {
       typhoid_cases: parseInt(newReport.typhoid_cases) || 0,
       fever_cases: parseInt(newReport.fever_cases) || 0,
       diarrhea_cases: parseInt(newReport.diarrhea_cases) || 0,
-      report_date: new Date().toISOString().split('T')[0]
+      report_date: new Date().toISOString().split("T")[0],
     };
 
-    // Add to mock data (in real app, this would be sent to backend)
-    mockNgoReports.push(report);
+    try {
+      const res = await api.post("/ngoData/ngo-surveys", payload);
+      toast.success("Survey data submitted successfully!");
+      console.log("Response:", res.data);
 
-    toast.success('Survey data added successfully!');
-    setShowAddData(false);
-
-    // Reset form
-    setNewReport({
-      village_id: '',
-      clean_drinking_water: false,
-      toilet_coverage: '',
-      waste_disposal_system: '',
-      flooding_waterlogging: false,
-      awareness_campaigns: false,
-      typhoid_cases: '',
-      fever_cases: '',
-      diarrhea_cases: ''
-    });
+      // reset form
+      setNewReport({
+        village_id: 0,
+        clean_drinking_water: false,
+        toilet_coverage: "",
+        waste_disposal_system: false,
+        flooding_waterlogging: false,
+        awareness_campaigns: false,
+        typhoid_cases: "",
+        fever_cases: "",
+        diarrhea_cases: "",
+      });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to submit data");
+    }
   };
 
   const handleSendAlert = (type: 'water' | 'disease') => {
@@ -112,7 +212,6 @@ const NgoDashboard = () => {
     }
   };
 
-  const surveyedData = getSurveyedVillageData();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -181,21 +280,20 @@ const NgoDashboard = () => {
 
                 <div className="flex space-x-4 mb-4">
                   <Button
-                    variant={reportPeriod === 'weekly' ? 'default' : 'outline'}
-                    onClick={() => setReportPeriod('weekly')}
+                    variant={reportPeriod === "weekly" ? "default" : "outline"}
+                    onClick={() => setReportPeriod("weekly")}
                   >
                     Weekly Report
                   </Button>
                   <Button
-                    variant={reportPeriod === 'monthly' ? 'default' : 'outline'}
-                    onClick={() => setReportPeriod('monthly')}
+                    variant={reportPeriod === "monthly" ? "default" : "outline"}
+                    onClick={() => setReportPeriod("monthly")}
                   >
                     Monthly Report
                   </Button>
                 </div>
               </CardContent>
             </Card>
-
             {/* Surveyed Villages Table */}
             <Card>
               <CardHeader>
@@ -226,20 +324,20 @@ const NgoDashboard = () => {
                         <TableRow key={index}>
                           <TableCell className="font-medium">{data.village_name}</TableCell>
                           <TableCell>
-                            <Badge variant={data.clean_drinking_water ? 'default' : 'destructive'}>
-                              {data.clean_drinking_water ? 'Yes' : 'No'}
+                            <Badge variant={data.clean_drinking_water ? "default" : "destructive"}>
+                              {data.clean_drinking_water ? "Yes" : "No"}
                             </Badge>
                           </TableCell>
                           <TableCell>{data.toilet_coverage}%</TableCell>
                           <TableCell className="capitalize">{data.waste_disposal_system}</TableCell>
                           <TableCell>
-                            <Badge variant={data.flooding_waterlogging ? 'destructive' : 'default'}>
-                              {data.flooding_waterlogging ? 'Yes' : 'No'}
+                            <Badge variant={data.flooding_waterlogging ? "destructive" : "default"}>
+                              {data.flooding_waterlogging ? "Yes" : "No"}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={data.awareness_campaigns ? 'default' : 'secondary'}>
-                              {data.awareness_campaigns ? 'Yes' : 'No'}
+                            <Badge variant={data.awareness_campaigns ? "default" : "secondary"}>
+                              {data.awareness_campaigns ? "Yes" : "No"}
                             </Badge>
                           </TableCell>
                           <TableCell>{data.typhoid_cases}</TableCell>
@@ -257,6 +355,7 @@ const NgoDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
           </div>
 
           {/* Right Panel - Actions */}
@@ -282,27 +381,34 @@ const NgoDashboard = () => {
                     </DialogHeader>
 
                     <form onSubmit={handleSubmitReport} className="space-y-4">
+                      {/* ✅ Dynamic Village Dropdown */}
                       <div>
-                        <Label htmlFor="village">Village</Label>
-                        <Select value={newReport.village_id} onValueChange={(value) => setNewReport({ ...newReport, village_id: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select village" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mockVillages.map((village) => (
-                              <SelectItem key={village.village_id} value={village.village_id.toString()}>
-                                {village.village_name}, {village.state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <label htmlFor="village">Select Village</label>
+                        <select
+                          id="village"
+                          className="w-full border p-2 rounded"
+                          value={newReport.village_id}
+                          onChange={(e) =>
+                            setNewReport((prev) => ({ ...prev, village_id: parseInt(e.target.value) }))
+                          }
+                        >
+                          <option value={0}>-- Select Village --</option>
+                          {villages.map((v) => (
+                            <option key={v.village_id} value={v.village_id}>
+                              {v.village_name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
+                      {/* ✅ Rest of your switches and inputs */}
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="clean_water"
                           checked={newReport.clean_drinking_water}
-                          onCheckedChange={(checked) => setNewReport({ ...newReport, clean_drinking_water: checked })}
+                          onCheckedChange={(checked) =>
+                            setNewReport({ ...newReport, clean_drinking_water: checked })
+                          }
                         />
                         <Label htmlFor="clean_water">Clean Drinking Water Available</Label>
                       </div>
@@ -315,29 +421,30 @@ const NgoDashboard = () => {
                           min="0"
                           max="100"
                           value={newReport.toilet_coverage}
-                          onChange={(e) => setNewReport({ ...newReport, toilet_coverage: e.target.value })}
+                          onChange={(e) =>
+                            setNewReport({ ...newReport, toilet_coverage: e.target.value })
+                          }
                         />
                       </div>
 
-                      <div>
-                        <Label htmlFor="waste_disposal">Waste Disposal System</Label>
-                        <Select value={newReport.waste_disposal_system} onValueChange={(value) => setNewReport({ ...newReport, waste_disposal_system: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select system type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            <SelectItem value="basic">Basic</SelectItem>
-                            <SelectItem value="advanced">Advanced</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="waste_disposal"
+                          checked={newReport.waste_disposal_system}
+                          onCheckedChange={(checked) =>
+                            setNewReport({ ...newReport, waste_disposal_system: checked })
+                          }
+                        />
+                        <Label htmlFor="waste_disposal">Waste Disposal System Available</Label>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="flooding"
                           checked={newReport.flooding_waterlogging}
-                          onCheckedChange={(checked) => setNewReport({ ...newReport, flooding_waterlogging: checked })}
+                          onCheckedChange={(checked) =>
+                            setNewReport({ ...newReport, flooding_waterlogging: checked })
+                          }
                         />
                         <Label htmlFor="flooding">Flooding & Waterlogging Issues</Label>
                       </div>
@@ -346,7 +453,9 @@ const NgoDashboard = () => {
                         <Switch
                           id="awareness"
                           checked={newReport.awareness_campaigns}
-                          onCheckedChange={(checked) => setNewReport({ ...newReport, awareness_campaigns: checked })}
+                          onCheckedChange={(checked) =>
+                            setNewReport({ ...newReport, awareness_campaigns: checked })
+                          }
                         />
                         <Label htmlFor="awareness">Awareness Campaigns Conducted</Label>
                       </div>
@@ -359,7 +468,9 @@ const NgoDashboard = () => {
                             type="number"
                             min="0"
                             value={newReport.typhoid_cases}
-                            onChange={(e) => setNewReport({ ...newReport, typhoid_cases: e.target.value })}
+                            onChange={(e) =>
+                              setNewReport({ ...newReport, typhoid_cases: e.target.value })
+                            }
                           />
                         </div>
                         <div>
@@ -369,7 +480,9 @@ const NgoDashboard = () => {
                             type="number"
                             min="0"
                             value={newReport.fever_cases}
-                            onChange={(e) => setNewReport({ ...newReport, fever_cases: e.target.value })}
+                            onChange={(e) =>
+                              setNewReport({ ...newReport, fever_cases: e.target.value })
+                            }
                           />
                         </div>
                         <div>
@@ -379,7 +492,9 @@ const NgoDashboard = () => {
                             type="number"
                             min="0"
                             value={newReport.diarrhea_cases}
-                            onChange={(e) => setNewReport({ ...newReport, diarrhea_cases: e.target.value })}
+                            onChange={(e) =>
+                              setNewReport({ ...newReport, diarrhea_cases: e.target.value })
+                            }
                           />
                         </div>
                       </div>
@@ -388,6 +503,7 @@ const NgoDashboard = () => {
                         Submit Survey Data
                       </Button>
                     </form>
+
                   </DialogContent>
                 </Dialog>
 
@@ -462,25 +578,19 @@ const NgoDashboard = () => {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span>Total Villages Covered:</span>
-                  <span className="font-bold">{surveyedVillages}</span>
+                  <span className="font-bold">{stats.total_villages}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>High Alert Villages:</span>
-                  <span className="font-bold text-red-600">
-                    {surveyedData.filter(d => d.alert_level === 'high').length}
-                  </span>
+                  <span className="font-bold text-red-600">{stats.high_alert_villages}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Total Disease Cases:</span>
-                  <span className="font-bold">
-                    {surveyedData.reduce((sum, d) => sum + d.total_diseases, 0)}
-                  </span>
+                  <span className="font-bold">{stats.total_disease_cases}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Villages without Clean Water:</span>
-                  <span className="font-bold text-orange-600">
-                    {surveyedData.filter(d => !d.clean_drinking_water).length}
-                  </span>
+                  <span className="font-bold text-orange-600">{stats.villages_without_clean_water}</span>
                 </div>
               </CardContent>
             </Card>
