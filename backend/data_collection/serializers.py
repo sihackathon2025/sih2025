@@ -1,17 +1,15 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import NgoSurvey, Village, HealthReport
 from users.models import User
 
+User = get_user_model()   # ✅ User model le liya
+
+# ---------------- Village Serializer ----------------
 class VillageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Village
         fields = '__all__'
-
-
-class VillageDropdownSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Village
-        fields = ['village_id', 'village_name']
 
 
 # ---------------- HealthReport Serializer ----------------
@@ -33,7 +31,7 @@ class NgoSurveySerializer(serializers.ModelSerializer):
     # ngo_id field → maps to Ngo model FK
     ngo_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
-        source="ngo"
+        source="ngo"   # model me ngo naam ka FK hoga
     )
 
     # village_id field → maps to Village FK
@@ -42,17 +40,11 @@ class NgoSurveySerializer(serializers.ModelSerializer):
         source="village"
     )
 
-    # district_name and state_name come from related Village
-    district_name = serializers.CharField(source="village.district_name", read_only=True)
-    state_name = serializers.CharField(source="village.state_name", read_only=True)
-
     class Meta:
         model = NgoSurvey
         fields = (
             'ngo_id',
-            'village_id',          # ✅ village FK
-            'district_name',       # from Village table
-            'state_name',          # from Village table
+            'village_id',   # ✅ village -> village_id
             'clean_drinking_water',
             'toilet_coverage',
             'waste_disposal_system',

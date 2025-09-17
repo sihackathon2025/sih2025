@@ -13,7 +13,6 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from .models import HealthReport
 
 
 # ------------------- Health Report APIs -------------------
@@ -246,6 +245,12 @@ def surveyed_villages_status(request):
         })
 
     return Response(data)
+
+
+@api_view(['GET'])
+def get_villages_dropdown(request):
+    villages = Village.objects.all().values('village_id', 'village_name')
+    return Response(list(villages))
 
 
 @api_view(['GET'])

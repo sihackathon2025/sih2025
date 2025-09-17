@@ -179,7 +179,7 @@ const NgoDashboard = () => {
     };
 
     try {
-      const res = await api.post("/ngoData/ngo-surveys", payload);
+      const res = await api.post("/ngoData/ngo-surveys/", payload);
       toast.success("Survey data submitted successfully!");
       console.log("Response:", res.data);
 
