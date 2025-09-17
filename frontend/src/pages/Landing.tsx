@@ -28,7 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/components/AuthContext";
-import { mockVillages } from "@/lib/mockData";
+
 import { toast } from "sonner";
 
 
@@ -330,7 +330,7 @@ const handleRegister = async (e: React.FormEvent) => {
                       </div>
 
                       <div>
-                        <Label>Select Location</Label>
+                          <Label>Select Location</Label>
                         <LocationSelector
                           state={registerForm.state}
                           district={registerForm.district}
@@ -343,7 +343,6 @@ const handleRegister = async (e: React.FormEvent) => {
                             }))
                           }
                         />
-
                       </div>
 
                       <div>
