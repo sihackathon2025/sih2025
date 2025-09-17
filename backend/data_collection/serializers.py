@@ -1,10 +1,6 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
 from .models import NgoSurvey, Village, HealthReport
 
-User = get_user_model()
-
-# ---------------- Village Serializer ----------------
 class VillageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Village

@@ -14,7 +14,8 @@ from .views import (
 
 
 urlpatterns = [
-    # Health reports from ASHA workers
+    path("disease_stats/", disease_stats, name="disease_stats"),
+    path("aasha_worker_reports/", aasha_worker_reports, name="aasha_worker_reports"),
     path("health-reports/", health_report_from_aasha, name="health_report_from_aasha"),
     path("aasha_worker_reports/", aasha_worker_reports, name="aasha_worker_reports"),
 

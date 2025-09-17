@@ -1,3 +1,32 @@
 from django.db import models
 
-# Create your models here.
+class EarlyWarningAlert(models.Model):
+    village_name = models.CharField(max_length=255)
+    district_name = models.CharField(max_length=255)
+    state_name = models.CharField(max_length=255)
+    rbalert = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.village_name}, {self.district_name}, {self.state_name}"
+
+
+class AlertSummary(models.Model):
+    alert = models.ForeignKey(
+        EarlyWarningAlert,
+        on_delete=models.CASCADE,
+        related_name="summaries"
+    )
+    summary_text = models.TextField()
+    risk_percentage = models.FloatField()   # e.g., 85.3
+    risk_level = models.CharField(max_length=20)  # e.g., "High", "Moderate"
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return (
+            f"Summary for {self.alert.village_name} - "
+            f"{self.risk_level} ({self.risk_percentage:.1f}%)"
+        )
+
+
+

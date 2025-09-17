@@ -28,10 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/components/AuthContext";
-
 import { toast } from "sonner";
-
-
 
 const Landing = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -57,112 +54,116 @@ const Landing = () => {
 
   const { setAuthUser } = useAuth();
 
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!loginForm.email || !loginForm.password) {
-    toast.error("Please fill in both email and password");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await api.post("/users/login/", {
-      email: loginForm.email,
-      password: loginForm.password,
-    });
-
-    const data = response.data;
-    console.log("🔁 login response:", data);
-
-    // backend expected shape: { access, refresh, user }
-    // be defensive in case keys differ slightly
-    const access = data.access ?? data.token ?? data.access_token;
-    const refresh = data.refresh ?? data.refresh_token;
-    const user = data.user ?? null;
-
-    if (access) localStorage.setItem("accessToken", access);
-    if (refresh) localStorage.setItem("refreshToken", refresh);
-
-    if (user) {
-      // update context (this also persists currentUser)
-      setAuthUser(user);
-    } else {
-      // If backend didn't send user object, try to proceed but warn
-      console.warn("Login response did not include `user` object. Response:", data);
-      // Optionally you could decode JWT here to extract claims (not implemented)
-      toast.warn("Logged in but frontend did not receive user info. Refresh may be required.");
+    if (!loginForm.email || !loginForm.password) {
+      toast.error("Please fill in both email and password");
+      return;
     }
 
-    toast.success("Login successful!");
-    setIsLoginOpen(false);
+    setLoading(true);
 
-    // Let RoleBasedRedirect handle final dashboard routing
-    navigate("/", { replace: true });
-  } catch (error: any) {
-    console.error("Login failed:", error?.response ?? error?.message ?? error);
-    toast.error(
-      error?.response?.data?.detail ||
+    try {
+      const response = await api.post("/users/login/", {
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      const data = response.data;
+      console.log("🔁 login response:", data);
+
+      // backend expected shape: { access, refresh, user }
+      // be defensive in case keys differ slightly
+      const access = data.access ?? data.token ?? data.access_token;
+      const refresh = data.refresh ?? data.refresh_token;
+      const user = data.user ?? null;
+
+      if (access) localStorage.setItem("accessToken", access);
+      if (refresh) localStorage.setItem("refreshToken", refresh);
+
+      if (user) {
+        // update context (this also persists currentUser)
+        setAuthUser(user);
+      } else {
+        // If backend didn't send user object, try to proceed but warn
+        console.warn(
+          "Login response did not include `user` object. Response:",
+          data,
+        );
+        // Optionally you could decode JWT here to extract claims (not implemented)
+        toast.warn(
+          "Logged in but frontend did not receive user info. Refresh may be required.",
+        );
+      }
+
+      toast.success("Login successful!");
+      setIsLoginOpen(false);
+
+      // Let RoleBasedRedirect handle final dashboard routing
+      navigate("/", { replace: true });
+    } catch (error: any) {
+      console.error(
+        "Login failed:",
+        error?.response ?? error?.message ?? error,
+      );
+      toast.error(
+        error?.response?.data?.detail ||
         error?.response?.data?.message ||
         error?.response?.data ||
-        "Login failed. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+        "Login failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-const handleRegister = async (e: React.FormEvent) => {
-  e.preventDefault();
+    if (registerForm.password !== registerForm.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
 
-  if (registerForm.password !== registerForm.confirmPassword) {
-    toast.error("Passwords do not match");
-    return;
-  }
+    setLoading(true);
 
-  setLoading(true);
+    try {
+      const response = await api.post("/users/register/", {
+        name: registerForm.name,
+        role: selectedRole,
+        state: registerForm.state,
+        district: registerForm.district,
+        village: registerForm.village || "",
+        email: registerForm.email,
+        password: registerForm.password,
+        password2: registerForm.confirmPassword,
+      });
 
-  try {
-    const response = await api.post("/users/register/", {
-      name: registerForm.name,
-      role: selectedRole,
-      state: registerForm.state,
-      district: registerForm.district,
-      village: registerForm.village || "",
-      email: registerForm.email,
-      password: registerForm.password,
-      password2: registerForm.confirmPassword,
-    });
+      const data = response.data;
 
-    const data = response.data;
+      // ✅ Save tokens
+      if (data.access) localStorage.setItem("accessToken", data.access);
+      if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
 
-    // ✅ Save tokens
-    if (data.access) localStorage.setItem("accessToken", data.access);
-    if (data.refresh) localStorage.setItem("refreshToken", data.refresh);
+      // ✅ Save + update context with user
+      if (data.user) setAuthUser(data.user);
 
-    // ✅ Save + update context with user
-    if (data.user) setAuthUser(data.user);
+      toast.success("Registration successful!");
+      setIsRegisterOpen(false);
 
-    toast.success("Registration successful!");
-    setIsRegisterOpen(false);
-
-    // redirect to home → RoleBasedRedirect handles dashboard
-    navigate("/", { replace: true });
-  } catch (error: any) {
-    toast.error(
-      error?.response?.data?.email?.[0] ||
-      error?.response?.data?.message ||
-      "Registration failed. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-
+      // redirect to home → RoleBasedRedirect handles dashboard
+      navigate("/", { replace: true });
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.email?.[0] ||
+        error?.response?.data?.message ||
+        "Registration failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -286,19 +287,25 @@ const handleRegister = async (e: React.FormEvent) => {
                     <DialogHeader>
                       <DialogTitle>Register for Health Portal</DialogTitle>
                       <DialogDescription>
-                        Choose your role and fill in your details to get started.
+                        Choose your role and fill in your details to get
+                        started.
                       </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div>
                         <Label htmlFor="role">Select Role</Label>
-                        <Select value={selectedRole} onValueChange={setSelectedRole}>
+                        <Select
+                          value={selectedRole}
+                          onValueChange={setSelectedRole}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Choose your role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="asha_worker">ASHA Worker</SelectItem>
+                            <SelectItem value="asha_worker">
+                              ASHA Worker
+                            </SelectItem>
                             <SelectItem value="ngo">NGO</SelectItem>
                             <SelectItem value="clinic">Clinic</SelectItem>
                           </SelectContent>
@@ -339,7 +346,7 @@ const handleRegister = async (e: React.FormEvent) => {
                           onChange={(field, value) =>
                             setRegisterForm((prev) => ({
                               ...prev,
-                              [field]: value,  // ✅ updates state/district/village
+                              [field]: value, // ✅ updates state/district/village
                             }))
                           }
                         />
@@ -378,7 +385,9 @@ const handleRegister = async (e: React.FormEvent) => {
                       </div>
 
                       <div>
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Label htmlFor="confirmPassword">
+                          Confirm Password
+                        </Label>
                         <Input
                           id="confirmPassword"
                           type="password"
@@ -393,7 +402,11 @@ const handleRegister = async (e: React.FormEvent) => {
                         />
                       </div>
 
-                      <Button type="submit" className="w-full" disabled={loading}>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loading}
+                      >
                         {loading ? "Registering..." : "Register"}
                       </Button>
                     </form>
@@ -468,7 +481,7 @@ const handleRegister = async (e: React.FormEvent) => {
                           <strong>Admin-pass:</strong> admin@123
                         </p>
                         <p>
-                          <strong>ASHA:</strong> ram.asha@gmail.com 
+                          <strong>ASHA:</strong> ram.asha@gmail.com
                           <strong>Asha-pass</strong> 12345
                         </p>
                         <p>
