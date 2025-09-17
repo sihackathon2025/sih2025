@@ -421,42 +421,42 @@ const AppFooter = () => {
   const { t } = useTranslation(); // Initialize useTranslation
   const statesData = [
     {
-      name: "Arunachal Pradesh",
+      nameKey: "arunachal_pradesh",
       icon: <Mountain className="w-5 h-5" />,
       url: "https://arunachalhealth.com/",
     },
     {
-      name: "Assam",
+      nameKey: "assam",
       icon: <Coffee className="w-5 h-5" />,
       url: "https://health.assam.gov.in/",
     },
     {
-      name: "Manipur",
+      nameKey: "manipur",
       icon: <Swords className="w-5 h-5" />,
       url: "https://mn.gov.in/",
     },
     {
-      name: "Meghalaya",
+      nameKey: "meghalaya",
       icon: <CloudRain className="w-5 h-5" />,
       url: "https://meghealth.gov.in/",
     },
     {
-      name: "Mizoram",
+      nameKey: "mizoram",
       icon: <SquareStack className="w-5 h-5" />,
       url: "https://health.mizoram.gov.in/",
     },
     {
-      name: "Nagaland",
+      nameKey: "nagaland",
       icon: <Feather className="w-5 h-5" />,
       url: "https://health.nagaland.gov.in/",
     },
     {
-      name: "Sikkim",
+      nameKey: "sikkim",
       icon: <Snowflake className="w-5 h-5" />,
       url: "http://health.sikkim.gov.in/",
     },
     {
-      name: "Tripura",
+      nameKey: "tripura",
       icon: <Building className="w-5 h-5" />,
       url: "https://health.tripura.gov.in/",
     },
@@ -496,14 +496,14 @@ const AppFooter = () => {
             <div className="grid grid-cols-2 gap-y-1 gap-x-2 justify-items-center md:justify-items-end">
               {statesData.map((state) => (
                 <a
-                  key={state.name}
+                  key={state.nameKey} // Use nameKey as key
                   href={state.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-1 text-gray-300 hover:text-blue-400 transition-colors group text-xs"
                 >
                   {state.icon}
-                  <span className="group-hover:underline">{state.name}</span>
+                  <span className="group-hover:underline">{t(state.nameKey)}</span> {/* Translate state name */}
                 </a>
               ))}
             </div>

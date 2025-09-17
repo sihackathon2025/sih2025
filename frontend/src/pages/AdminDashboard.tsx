@@ -62,6 +62,7 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from 'react-i18next';
 
 // --- TYPE DEFINITIONS ---
 interface VillageDashboardType {
@@ -160,24 +161,27 @@ const getRiskClass = (
 };
 
 const StatCard = ({
-  title,
+  title, // This will be a translation key
   value,
   icon,
 }: {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-}) => (
-  <Card className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{value}</div>
-    </CardContent>
-  </Card>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <Card className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{t(title)}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const VillageList = ({
   villages,
@@ -188,11 +192,12 @@ const VillageList = ({
   onVillageSelect: (id: number) => void;
   selectedVillageId: number | null;
 }) => {
+  const { t } = useTranslation();
   if (villages.length === 0) {
     return (
       <div className="text-center p-6">
         <Wind className="mx-auto h-8 w-8 text-slate-400" />
-        <p className="text-sm text-muted-foreground mt-2">No villages found.</p>
+        <p className="text-sm text-muted-foreground mt-2">{t("no_villages_found")}</p>
       </div>
     );
   }
@@ -211,7 +216,7 @@ const VillageList = ({
           <div className="flex flex-col items-start w-full">
             <span className="font-semibold">{village.village_name}</span>
             <span className="text-xs text-muted-foreground">
-              {village.total_cases} cases | {village.risk_percentage}% risk
+              {village.total_cases} {t("cases")} | {village.risk_percentage}% {t("risk")}
             </span>
           </div>
         </Button>
@@ -220,32 +225,36 @@ const VillageList = ({
   );
 };
 
-const DashboardSkeleton = () => (
-  <div className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 animate-pulse">
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div className="lg:col-span-3 space-y-6">
-        <div className="h-24 bg-slate-200 rounded-lg"></div>
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+const DashboardSkeleton = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 animate-pulse">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
           <div className="h-24 bg-slate-200 rounded-lg"></div>
-          <div className="h-24 bg-slate-200 rounded-lg"></div>
-          <div className="h-24 bg-slate-200 rounded-lg"></div>
-          <div className="h-24 bg-slate-200 rounded-lg"></div>
-          <div className="h-24 bg-slate-200 rounded-lg"></div>
-          <div className="h-24 bg-slate-200 rounded-lg"></div>
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+            <div className="h-24 bg-slate-200 rounded-lg"></div>
+            <div className="h-24 bg-slate-200 rounded-lg"></div>
+            <div className="h-24 bg-slate-200 rounded-lg"></div>
+            <div className="h-24 bg-slate-200 rounded-lg"></div>
+            <div className="h-24 bg-slate-200 rounded-lg"></div>
+            <div className="h-24 bg-slate-200 rounded-lg"></div>
+          </div>
+          <div className="h-96 bg-slate-200 rounded-lg"></div>
         </div>
-        <div className="h-96 bg-slate-200 rounded-lg"></div>
-      </div>
-      <div className="lg:col-span-1 space-y-6">
-        <div className="h-64 bg-slate-200 rounded-lg"></div>
-        <div className="h-32 bg-slate-200 rounded-lg"></div>
+        <div className="lg:col-span-1 space-y-6">
+          <div className="h-64 bg-slate-200 rounded-lg"></div>
+          <div className="h-32 bg-slate-200 rounded-lg"></div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- MAIN DASHBOARD COMPONENT ---
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+  const { t, i18n } = useTranslation();
 
   // --- STATE MANAGEMENT ---
   const [allVillagesData, setAllVillagesData] = useState<
@@ -257,20 +266,19 @@ const AdminDashboard = () => {
   const [liveAlerts] = useState<AlertType[]>([
     {
       id: 1,
-      title: "High Fever Outbreak",
-      message: "Multiple cases of high fever reported in Village_1.",
+      title: t("high_fever_outbreak"), // Example of translating hardcoded alert
+      message: t("high_fever_outbreak_message"),
       created_at: "2025-09-15T10:00:00Z",
     },
     {
       id: 2,
-      title: "Water Contamination",
-      message: "Reports of contaminated drinking water in Village_5.",
+      title: t("water_contamination"),
+      message: t("water_contamination_message"),
       created_at: "2025-09-14T14:30:00Z",
     },
   ]);
   const [alertSummaries, setAlertSummaries] = useState<AlertSummaryType[]>([]);
-  const [selectedSummary, setSelectedSummary] =
-    useState<AlertSummaryType | null>(null);
+  const [selectedSummary, setSelectedSummary] = useState<AlertSummaryType | null>(null);
   const [isPredictionDialogOpen, setPredictionDialogOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -307,7 +315,7 @@ const AdminDashboard = () => {
         }
       } catch (err) {
         console.error("Error fetching initial data:", err);
-        setError("Failed to load dashboard data.");
+        setError(t("failed_to_load_dashboard_data"));
       } finally {
         setTimeout(() => setLoading(false), 500);
       }
@@ -370,19 +378,22 @@ const AdminDashboard = () => {
     const colors = { Mild: "#22c55e", Moderate: "#eab308", Severe: "#ef4444" };
     return Object.entries(selectedVillageData.severity_distribution).map(
       ([name, value]) => ({
-        name,
+        name: t(name.toLowerCase()), // Translate severity names
         value,
         fill: colors[name as keyof typeof colors] || "#6b7280",
       }),
     );
-  }, [selectedVillageData]);
+  }, [selectedVillageData, t]);
 
   const monthlyTrendData = useMemo(() => {
     if (!selectedVillageData?.monthly_trend) return [];
     return Object.entries(selectedVillageData.monthly_trend).map(
-      ([month, cases]) => ({ month, cases }),
+      ([month, cases]) => ({
+        month: t(month.toLowerCase()), // Translate month names if needed, or map to specific keys
+        cases,
+      }),
     );
-  }, [selectedVillageData]);
+  }, [selectedVillageData, t]);
 
   // --- RENDER LOGIC ---
   if (loading) return <DashboardSkeleton />;
@@ -406,10 +417,10 @@ const AdminDashboard = () => {
               />
               <div>
                 <h1 className="text-xl font-bold text-slate-900">
-                  Admin Dashboard
+                  {t("admin_dashboard")}
                 </h1>
                 <p className="text-sm text-slate-600">
-                  Ministry of Development - NER
+                  {t("ministry_of_development_ner")}
                 </p>
               </div>
             </div>
@@ -418,7 +429,7 @@ const AdminDashboard = () => {
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="relative">
                     <Siren className="h-4 w-4 mr-2" />
-                    Live Alerts
+                    {t("live_alerts")}
                     <Badge className="ml-2 bg-red-500 text-white px-1.5 py-0.5 text-xs">
                       {liveAlerts.length}
                     </Badge>
@@ -426,9 +437,9 @@ const AdminDashboard = () => {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Live Alerts</DialogTitle>
+                    <DialogTitle>{t("live_alerts")}</DialogTitle>
                     <DialogDescription>
-                      Current active alerts.
+                      {t("current_active_alerts")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
@@ -458,21 +469,20 @@ const AdminDashboard = () => {
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
                     <BrainCircuit className="h-4 w-4 mr-2" />
-                    Alert Prediction
+                    {t("alert_prediction")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl h-[80vh]">
                   <DialogHeader>
-                    <DialogTitle>AI-Powered Alert Predictions</DialogTitle>
+                    <DialogTitle>{t("ai_powered_alert_predictions")}</DialogTitle>
                     <DialogDescription>
-                      Click on a village to view the detailed AI-generated
-                      summary and recommendations.
+                      {t("click_village_for_summary")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid grid-cols-3 gap-4 h-full overflow-hidden pt-4">
                     <div className="col-span-1 flex flex-col border-r pr-4 overflow-y-auto">
                       <div className="text-sm font-semibold mb-2 px-2">
-                        All Village Summaries
+                        {t("all_village_summaries")}
                       </div>
                       <div className="flex-grow space-y-1">
                         {alertSummaries.map((summary) => (
@@ -492,7 +502,7 @@ const AdminDashboard = () => {
                               {summary.village}
                             </div>
                             <div className="text-xs text-slate-600">
-                              {summary.risk_level} Risk (
+                              {t(summary.risk_level.toLowerCase())} {t("risk")} (
                               {summary.risk_percentage.toFixed(1)}%)
                             </div>
                           </button>
@@ -512,7 +522,7 @@ const AdminDashboard = () => {
                                 {selectedSummary.village}
                               </CardTitle>
                               <CardDescription>
-                                {selectedSummary.district},{" "}
+                                {selectedSummary.district}, {" "}
                                 {selectedSummary.state}
                               </CardDescription>
                             </CardHeader>
@@ -525,11 +535,11 @@ const AdminDashboard = () => {
                                 }}
                                 className="text-white"
                               >
-                                {selectedSummary.risk_level} Risk (
+                                {t(selectedSummary.risk_level.toLowerCase())} {t("risk")} (
                                 {selectedSummary.risk_percentage.toFixed(1)}%)
                               </Badge>
                               <p className="text-xs text-slate-500 mt-2">
-                                Generated on:{" "}
+                                {t("generated_on")}:{" "}
                                 {new Date(
                                   selectedSummary.created_at,
                                 ).toLocaleString()}
@@ -538,7 +548,7 @@ const AdminDashboard = () => {
                           </Card>
                           <Card>
                             <CardHeader>
-                              <CardTitle>Actionable Summary</CardTitle>
+                              <CardTitle>{t("actionable_summary")}</CardTitle>
                             </CardHeader>
                             <CardContent>
                               <div dangerouslySetInnerHTML={{ __html: selectedSummary.summary }} />
@@ -548,7 +558,7 @@ const AdminDashboard = () => {
                       ) : (
                         <div className="flex items-center justify-center h-full">
                           <p className="text-slate-500">
-                            Select a village to see the summary.
+                            {t("select_village_to_see_summary")}
                           </p>
                         </div>
                       )}
@@ -558,7 +568,7 @@ const AdminDashboard = () => {
               </Dialog>
 
               <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                Send Alert
+                {t("send_alert")}
               </Button>
               <div className="flex items-center space-x-2 border-l pl-2 ml-2">
                 <User className="h-5 w-5 text-slate-500" />
@@ -566,7 +576,7 @@ const AdminDashboard = () => {
                   {user?.name}
                 </span>
                 <Button variant="ghost" size="sm" onClick={logout}>
-                  Logout
+                  {t("logout")}
                 </Button>
               </div>
             </div>
@@ -588,12 +598,12 @@ const AdminDashboard = () => {
                   <div>
                     <CardTitle className="text-2xl font-bold tracking-tight">
                       {selectedVillageData?.village_name ??
-                        "No Village Selected"}
+                        t("no_village_selected")}
                     </CardTitle>
                     <CardDescription>
                       {selectedVillageData
                         ? `${selectedVillageData.district}, ${selectedVillageData.state}`
-                        : "Select a village from the sidebar to see its details"}
+                        : t("select_village_sidebar_details")}
                     </CardDescription>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -606,7 +616,7 @@ const AdminDashboard = () => {
                         }}
                         className="text-white text-sm"
                       >
-                        {selectedVillageData.risk_level} Risk (
+                        {t(selectedVillageData.risk_level.toLowerCase())} {t("risk")} (
                         {selectedVillageData.risk_percentage}%)
                       </Badge>
                     )}
@@ -615,8 +625,8 @@ const AdminDashboard = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1month">Last 1 Month</SelectItem>
-                        <SelectItem value="6months">Last 6 Months</SelectItem>
+                        <SelectItem value="1month">{t("last_1_month")}</SelectItem>
+                        <SelectItem value="6months">{t("last_6_months")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -627,32 +637,32 @@ const AdminDashboard = () => {
             {/* KPI Stats */}
             <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
               <StatCard
-                title="Population"
+                title="population"
                 value={selectedVillageData?.population.toLocaleString() ?? "--"}
                 icon={<Users className="h-4 w-4 text-muted-foreground" />}
               />
               <StatCard
-                title="Total Cases"
+                title="total_cases"
                 value={selectedVillageData?.total_cases ?? "--"}
                 icon={<HeartPulse className="h-4 w-4 text-muted-foreground" />}
               />
               <StatCard
-                title="Deaths"
+                title="deaths"
                 value={selectedVillageData?.total_deaths ?? "--"}
                 icon={<Skull className="h-4 w-4 text-muted-foreground" />}
               />
               <StatCard
-                title="Hospitalized"
+                title="hospitalized"
                 value={selectedVillageData?.hospitalized_cases ?? "--"}
                 icon={<Hospital className="h-4 w-4 text-muted-foreground" />}
               />
               <StatCard
-                title="Critical"
+                title="critical"
                 value={selectedVillageData?.critical_cases ?? "--"}
                 icon={<Activity className="h-4 w-4 text-muted-foreground" />}
               />
               <StatCard
-                title="Recovered"
+                title="recovered"
                 value={selectedVillageData?.recovered_cases ?? "--"}
                 icon={<ShieldCheck className="h-4 w-4 text-muted-foreground" />}
               />
@@ -662,7 +672,7 @@ const AdminDashboard = () => {
               <div className="xl:col-span-3">
                 <Card className="h-full">
                   <CardHeader>
-                    <CardTitle>Interactive Map</CardTitle>
+                    <CardTitle>{t("interactive_map")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="h-[400px] w-full rounded-md overflow-hidden border">
@@ -678,7 +688,7 @@ const AdminDashboard = () => {
               <div className="xl:col-span-2">
                 <Card className="h-full">
                   <CardHeader>
-                    <CardTitle>Severity Distribution</CardTitle>
+                    <CardTitle>{t("severity_distribution")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={400}>
@@ -708,7 +718,7 @@ const AdminDashboard = () => {
               <div className="xl:col-span-3">
                 <Card className="h-full">
                   <CardHeader>
-                    <CardTitle>Symptom Distribution</CardTitle>
+                    <CardTitle>{t("symptom_distribution")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -755,7 +765,7 @@ const AdminDashboard = () => {
               <div className="xl:col-span-2">
                 <Card className="h-full">
                   <CardHeader>
-                    <CardTitle>Monthly Trend</CardTitle>
+                    <CardTitle>{t("monthly_trend")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -803,7 +813,7 @@ const AdminDashboard = () => {
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader className="flex-row items-center justify-between">
-                <CardTitle>Village Watchlist</CardTitle>
+                <CardTitle>{t("village_watchlist")}</CardTitle>
                 <Dialog
                   open={isVillagesDialogOpen}
                   onOpenChange={setVillagesDialogOpen}
@@ -811,13 +821,13 @@ const AdminDashboard = () => {
                   <DialogTrigger asChild>
                     <Button variant="ghost" size="sm">
                       <Search className="h-4 w-4 mr-2" />
-                      View All
+                      {t("view_all")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>
-                        All {activeWatchlistTab} Risk Villages
+                        {t("all_risk_villages", { riskLevel: t(activeWatchlistTab) })}
                       </DialogTitle>
                     </DialogHeader>
                     <div className="max-h-80 overflow-y-auto mt-4 space-y-2">
@@ -836,14 +846,14 @@ const AdminDashboard = () => {
               <CardContent>
                 <Tabs defaultValue="high" onValueChange={setActiveWatchlistTab}>
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="high">High</TabsTrigger>
-                    <TabsTrigger value="moderate">Moderate</TabsTrigger>
-                    <TabsTrigger value="low">Low</TabsTrigger>
+                    <TabsTrigger value="high">{t("high")}</TabsTrigger>
+                    <TabsTrigger value="moderate">{t("moderate")}</TabsTrigger>
+                    <TabsTrigger value="low">{t("low")}</TabsTrigger>
                   </TabsList>
                   <div className="relative mt-4">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <input
-                      placeholder={`Search in ${activeWatchlistTab} risk...`}
+                      placeholder={t("search_in_risk", { riskLevel: t(activeWatchlistTab) })}
                       className="w-full p-2 pl-8 border rounded-md"
                       value={watchlistSearchTerm}
                       onChange={(e) => setWatchlistSearchTerm(e.target.value)}
@@ -863,11 +873,11 @@ const AdminDashboard = () => {
             {selectedVillageData && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Additional Info</CardTitle>
+                  <CardTitle>{t("additional_info")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Water Status</span>
+                    <span className="text-muted-foreground">{t("water_status")}</span>
                     <Badge
                       variant={
                         selectedVillageData.latest_water_assessment_status ===
@@ -876,24 +886,25 @@ const AdminDashboard = () => {
                           : "default"
                       }
                     >
-                      {selectedVillageData.latest_water_assessment_status ||
-                        "N/A"}
+                      {selectedVillageData.latest_water_assessment_status
+                        ? t(selectedVillageData.latest_water_assessment_status.toLowerCase()) // Translate status
+                        : t("n_a")}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Last Tested</span>
+                    <span className="text-muted-foreground">{t("last_tested")}</span>
                     <span>
                       {selectedVillageData.latest_water_assessment_date
                         ? new Date(
-                          selectedVillageData.latest_water_assessment_date,
-                        ).toLocaleDateString()
-                        : "N/A"}
+                            selectedVillageData.latest_water_assessment_date,
+                          ).toLocaleDateString()
+                        : t("n_a")}
                     </span>
                   </div>
                   <hr />
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      Completed Campaigns
+                      {t("completed_campaigns")}
                     </span>
                     <span className="font-bold">
                       {selectedVillageData.completed_campaigns}
@@ -901,7 +912,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      Ongoing Campaigns
+                      {t("ongoing_campaigns")}
                     </span>
                     <span className="font-bold">
                       {selectedVillageData.ongoing_campaigns}
@@ -909,7 +920,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      Planned Campaigns
+                      {t("planned_campaigns")}
                     </span>
                     <span className="font-bold">
                       {selectedVillageData.planned_campaigns}
@@ -917,9 +928,9 @@ const AdminDashboard = () => {
                   </div>
                   <hr />
                   <p className="text-muted-foreground pt-2">
-                    Latest Alert:{" "}
+                    {t("latest_alert")}{" "}
                     <span className="font-semibold text-slate-800">
-                      {selectedVillageData.latest_rb_alerts || "No alerts"}
+                      {selectedVillageData.latest_rb_alerts || t("no_alerts")}
                     </span>
                   </p>
                 </CardContent>
