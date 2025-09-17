@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import NgoSurvey, Village, HealthReport
+from users.models import User
 
 User = get_user_model()   # ✅ User model le liya
 

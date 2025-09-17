@@ -117,7 +117,7 @@ dependencies:
     specifier: ^8.6.0
     version: 8.6.0(react@19.1.1)
   framer-motion:
-    specifier: ^11.0.0
+    specifier: ^11.18.2
     version: 11.18.2(react-dom@19.1.1)(react@19.1.1)
   input-otp:
     specifier: ^1.4.2
@@ -155,6 +155,9 @@ dependencies:
   react-icons:
     specifier: ^5.5.0
     version: 5.5.0(react@19.1.1)
+  react-intersection-observer:
+    specifier: ^9.16.0
+    version: 9.16.0(react-dom@19.1.1)(react@19.1.1)
   react-leaflet:
     specifier: ^5.0.0
     version: 5.0.0(leaflet@1.9.4)(react-dom@19.1.1)(react@19.1.1)
@@ -4330,6 +4333,19 @@ packages:
       react: '*'
     dependencies:
       react: 19.1.1
+    dev: false
+
+  /react-intersection-observer@9.16.0(react-dom@19.1.1)(react@19.1.1):
+    resolution: {integrity: sha512-w9nJSEp+DrW9KmQmeWHQyfaP6b03v+TdXynaoA964Wxt7mdR3An11z4NNCQgL4gKSK7y1ver2Fq+JKH6CWEzUA==}
+    peerDependencies:
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+    dependencies:
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     dev: false
 
   /react-is@16.13.1:

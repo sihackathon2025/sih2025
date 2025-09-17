@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsNgoUser, IsAdminUser
-from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer
+from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer, VillageDropdownSerializer
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
 from datetime import timedelta, date
@@ -273,6 +273,13 @@ def summary_statistics(request):
     })
 
 
+class VillageCreateView(generics.ListCreateAPIView):
+    queryset = Village.objects.all()
+    serializer_class = VillageSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def aasha_worker_reports(request):
@@ -347,10 +354,6 @@ def disease_stats(request):
         "total_disease_count": reports.count()
     })
 
-class VillageCreateView(generics.CreateAPIView):
-    queryset = Village.objects.all()
-    serializer_class = VillageSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
 
 class NgoSurveyView(APIView):
     permission_classes = [IsAuthenticated, IsNgoUser]
@@ -398,3 +401,10 @@ class AdminMapDataView(APIView):
             )
         ).values('village_id', 'village_name', 'latitude', 'longitude', 'case_count', 'risk_level')
         return Response(map_data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_villages_dropdown(request):
+    villages = Village.objects.all()
+    serializer = VillageDropdownSerializer(villages, many=True)
+    return Response(serializer.data)

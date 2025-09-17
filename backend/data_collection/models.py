@@ -2,20 +2,19 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-# ---------------- Village ----------------
 class Village(models.Model):
+    state_name = models.CharField(max_length=100)
+    district_name = models.CharField(max_length=100)
     village_id = models.AutoField(primary_key=True)
-    village_name = models.CharField(max_length=255, db_column="village_name")
-    state = models.CharField(max_length=100, db_column="state_name")
-    district = models.CharField(max_length=100, db_column="district_name")
+    village_name = models.CharField(max_length=255)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     population = models.IntegerField(null=True, blank=True)
-
+    def __str__(self):
+        return self.village_name
+# ---------------- Village ----------------
     class Meta:
         db_table = "data_collection_village"  # force Django to use existing table
-
-
 
 # ---------------- HealthReport ----------------
 class HealthReport(models.Model):
@@ -35,15 +34,8 @@ class HealthReport(models.Model):
     water_source = models.CharField(max_length=100)
     treatment_given = models.TextField()
     asha_worker_id = models.IntegerField()
-
-    village = models.ForeignKey(
-        Village,
-        on_delete=models.CASCADE,
-        related_name='health_reports_set'
-    )
-
+    village = models.ForeignKey(Village, on_delete=models.CASCADE, related_name='health_reports_set')
     created_at = models.DateTimeField(auto_now_add=True)
-
     def __str__(self):
         return f"{self.patient_name} - {self.report_id}"
 
@@ -61,7 +53,6 @@ class NgoSurvey(models.Model):
     typhoid_cases = models.PositiveIntegerField(default=0)
     fever_cases = models.PositiveIntegerField(default=0)
     diarrhea_cases = models.PositiveIntegerField(default=0)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -83,6 +74,5 @@ class ClinicReport(models.Model):
     deaths_reported = models.PositiveIntegerField(default=0)
     date_of_reporting = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
-
     def __str__(self):
         return f"Clinic Report for {self.village.village_name} on {self.date_of_reporting}"
