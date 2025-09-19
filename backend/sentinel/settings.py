@@ -72,7 +72,11 @@ MIDDLEWARE = [
 # CORS (if required)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",   # Vite dev server origin - add your frontend origin(s)
+    "capacitor://localhost",
+    "http://192.168.1.6:3000",
 ]
+# OR for quick dev (not recommended for prod)
+CORS_ALLOW_ALL_ORIGINS = True
 # Use your custom user model
 AUTH_USER_MODEL = 'users.User'
 

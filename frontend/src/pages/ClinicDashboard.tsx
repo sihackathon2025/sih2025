@@ -1,16 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useAuth } from '@/components/AuthContext';
-import { mockHealthReports, getVillageById } from '@/lib/mockData';
-import { toast } from 'sonner';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/components/AuthContext";
+import { mockHealthReports, getVillageById } from "@/lib/mockData";
+import { toast } from "sonner";
+import api from "../axiosConfig";
+import { getCurrentUser } from "../api/authConfig";
+ 
 
 const ClinicDashboard = () => {
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [reportPeriod, setReportPeriod] = useState('weekly');
+  const [villages, setVillages] = useState<any[]>([]);
+  const [openForm, setOpenForm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    typhoid_cases: 0,
+    fever_cases: 0,
+    diarrhea_cases: 0,
+    cholera_cases: 0,
+    hospitalized_cases: 0,
+    deaths_reported: 0,
+    date_of_reporting: "",
+    village_id: "",
+    clinic_id: user?.user_id || null,
+  });
+
+  // Fetch villages for dropdown
+  useEffect(() => {
+    const fetchVillages = async () => {
+      try {
+        const currentUser = getCurrentUser();
+        if (!currentUser) return;
+
+        const res = await api.get("/ngoData/villages/dropdown/");
+        setVillages(res.data || []);
+      } catch (error) {
+        console.error("Error fetching villages", error);
+        toast.error("Failed to fetch villages");
+      }
+    };
+    fetchVillages();
+  }, []);
 
   // Mock clinic reports (in real app, this would be fetched based on clinic_id)
   const clinicReports = mockHealthReports.slice(0, 3); // Sample reports for demo
@@ -18,6 +55,44 @@ const ClinicDashboard = () => {
   const handleSendAlert = (type: 'water' | 'disease') => {
     toast.success(`${type === 'water' ? 'Water contamination' : 'Disease'} alert sent to concerned authorities!`);
   };
+
+  const handleFormChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleSubmitReport = async () => {
+    try {
+      const payload = {
+        ...formData,
+        typhoid_cases: Number(formData.typhoid_cases),
+        fever_cases: Number(formData.fever_cases),
+        diarrhea_cases: Number(formData.diarrhea_cases),
+        cholera_cases: Number(formData.cholera_cases),
+        hospitalized_cases: Number(formData.hospitalized_cases),
+        deaths_reported: Number(formData.deaths_reported),
+        clinic_id: user?.user_id,
+      };
+
+      await api.post("/data_collection/clinic-reports/", payload);
+      toast.success("Clinic report submitted successfully!");
+      setOpenForm(false);
+      setFormData({
+        typhoid_cases: 0,
+        fever_cases: 0,
+        diarrhea_cases: 0,
+        cholera_cases: 0,
+        hospitalized_cases: 0,
+        deaths_reported: 0,
+        date_of_reporting: "",
+        village_id: "",
+        clinic_id: user?.user_id || null,
+      });
+    } catch (error) {
+      console.error("Error submitting report", error);
+      toast.error("Failed to submit report");
+    }
+  };
+
+
 
   const getWeeklyReportData = () => {
     return clinicReports.map((report, index) => ({
@@ -109,7 +184,76 @@ const ClinicDashboard = () => {
                   >
                     Monthly Report
                   </Button>
+                  <Button onClick={() => setOpenForm(true)}>➕ Add Clinic Report</Button>
                 </div>
+
+
+                {/* FORM MODAL */}
+                <Dialog open={openForm} onOpenChange={setOpenForm}>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Add Clinic Report</DialogTitle>
+                      <DialogDescription>Fill in the details of the report</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {[
+                        "typhoid_cases",
+                        "fever_cases",
+                        "diarrhea_cases",
+                        "cholera_cases",
+                        "hospitalized_cases",
+                        "deaths_reported",
+                      ].map((field) => (
+                        <div key={field}>
+                          <Label className="capitalize">{field.replace("_", " ")}</Label>
+                          <Input
+                            type="number"
+                            value={(formData as any)[field]}
+                            onChange={(e) => handleFormChange(field, e.target.value)}
+                          />
+                        </div>
+                      ))}
+
+                      <div>
+                        <Label>Date of Reporting</Label>
+                        <Input
+                          type="date"
+                          value={formData.date_of_reporting}
+                          onChange={(e) =>
+                            handleFormChange("date_of_reporting", e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Village</Label>
+                        <Select
+                          value={formData.village_id}
+                          onValueChange={(val) => handleFormChange("village_id", val)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Village" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {villages.map((village) => (
+                              <SelectItem
+                                key={village.village_id}
+                                value={village.village_id.toString()}
+                              >
+                                {village.village_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <Button className="w-full mt-4" onClick={handleSubmitReport}>
+                        Submit Report
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
 
                 {/* Weekly Report Table */}
                 {reportPeriod === 'weekly' && (

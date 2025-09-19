@@ -3,7 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsNgoUser, IsAdminUser
-from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer
+from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer,ClinicReportSerializer
+from .models import ClinicReport
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
 from datetime import timedelta, date
@@ -398,3 +399,20 @@ class AdminMapDataView(APIView):
             )
         ).values('village_id', 'village_name', 'latitude', 'longitude', 'case_count', 'risk_level')
         return Response(map_data)
+
+#clinc report api 
+class ClinicReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Create new clinic report"""
+        serializer = ClinicReportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save(clinic=request.user)  # clinic auto-assign
+        return Response(ClinicReportSerializer(report).data, status=201)
+
+    def get(self, request):
+        """Fetch all clinic reports of logged-in clinic"""
+        reports = ClinicReport.objects.filter(clinic=request.user)
+        serializer = ClinicReportSerializer(reports, many=True)
+        return Response(serializer.data)

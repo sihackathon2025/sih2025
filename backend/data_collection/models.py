@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 
 
 # ---------------- Village ----------------
@@ -74,15 +75,51 @@ class Ngo_HealthReport(models.Model):
 
 # ---------------- ClinicReport ----------------
 class ClinicReport(models.Model):
-    village = models.ForeignKey(Village, on_delete=models.CASCADE)
-    typhoid_cases = models.PositiveIntegerField(default=0)
-    fever_cases = models.PositiveIntegerField(default=0)
-    diarrhea_cases = models.PositiveIntegerField(default=0)
-    cholera_cases = models.PositiveIntegerField(default=0)
-    hospitalized_cases = models.PositiveIntegerField(default=0)
-    deaths_reported = models.PositiveIntegerField(default=0)
+    report_id = models.BigAutoField(primary_key=True)
+
+    village = models.ForeignKey(
+        'Village',
+        on_delete=models.CASCADE,
+        db_column="village_id",
+        related_name="clinic_reports"
+    )
+
+    clinic = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="clinic_id",
+        related_name="clinic_reports"
+    )
+
+    typhoid_cases = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)], default=0
+    )
+    fever_cases = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)], default=0
+    )
+    diarrhea_cases = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)], default=0
+    )
+    cholera_cases = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)], default=0
+    )
+    hospitalized_cases = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)], default=0
+    )
+    deaths_reported = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)], default=0
+    )
+
     date_of_reporting = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "data_collection_clinicreport"  # match existing table
+        indexes = [
+            models.Index(fields=["village"]),  # matches SQL index
+        ]
+
     def __str__(self):
-        return f"Clinic Report for {self.village.village_name} on {self.date_of_reporting}"
+        return f"Clinic Report (Village: {self.village.village_name}, Date: {self.date_of_reporting})"
