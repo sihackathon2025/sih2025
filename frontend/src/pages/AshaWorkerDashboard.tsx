@@ -1,6 +1,7 @@
 import LocationSelector from "@/components/LocationSelector.tsx";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import TurbidityCard from "@/components/TurbidityCard"
 import {
   Card,
   CardContent,
@@ -42,6 +43,8 @@ import {
   getVillageById,
 } from "@/lib/mockData";
 import { toast } from "sonner";
+import api from "../axiosConfig"; // ✅ yaha se import karo
+
 
 const AshaWorkerDashboard = () => {
   const { user, logout } = useAuth();
@@ -52,26 +55,25 @@ const AshaWorkerDashboard = () => {
 
   useEffect(() => {
     const fetchReportPeriod = async () => {
-      console.log("api called");
+      console.log("API called");
       try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/data_collection/aasha_worker_reports/?asha_worker_id=${
-            user?.user_id || "123456"
-          }&reportPeriod=${reportPeriod}`
+        const response = await api.get(
+          `/data_collection/aasha_worker_reports/`,
+          {
+            params: {
+              asha_worker_id: user?.user_id || "123456",
+              reportPeriod: reportPeriod,
+            },
+          }
         );
-  
-        if (!response.ok) {
-          throw new Error("Failed to fetch report period");
-        }
-  
-        const data = await response.json();
-        setWorkerReports(data.reports);
-        console.log("Report period response:", data);
+
+        setWorkerReports(response.data.reports);
+        console.log("Report period response:", response.data);
       } catch (error) {
         console.error("Error fetching report period:", error);
       }
     };
-  
+
     fetchReportPeriod();
   }, [reportPeriod, user?.user_id]);
 
@@ -84,27 +86,31 @@ const [totalDiseaseCount, setTotalDiseaseCount] = useState(0);
 useEffect(() => {
   const fetchDiseaseStats = async () => {
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/data_collection/disease_stats/?asha_worker_id=${user?.user_id}&filter=${statsFilter}`
+      const response = await api.get(
+        `/data_collection/disease_stats/`,
+        {
+          params: {
+            asha_worker_id: user?.user_id,
+            filter: statsFilter,
+          },
+        }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch stats");
-
-      const data = await response.json();
-
-      // Make sure backend returns correct keys
-      // Example backend response:
+      // Backend se expected response:
       // {
       //   "disease_counts": { "Fever": 5, "Diarrhea": 2, ... },
       //   "total_disease_count": 15
       // }
 
+      const data = response.data;
+
       setDiseaseStats(data.disease_counts || {}); // fallback empty object
       setTotalDiseaseCount(data.total_disease_count || 0); // fallback 0
-      console.log(data.disease_counts)
-      console.log(data.total_disease_count)
+
+      console.log("Disease Counts:", data.disease_counts);
+      console.log("Total Disease Count:", data.total_disease_count);
     } catch (error) {
-      console.error("Error fetching disease stats:", error);
+      console.error("❌ Error fetching disease stats:", error);
       setDiseaseStats({});
       setTotalDiseaseCount(0);
     }
@@ -145,57 +151,39 @@ const diseaseWiseCases = workerReports.reduce((acc, report) => {
 
 const villagesCovered = new Set(workerReports.map((report) => report.village_id)).size;
 
-  const handleSubmitReport = async (e: React.FormEvent) =>  {
-    e.preventDefault();
+const handleSubmitReport = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!newReport.patient_name || !newReport.symptoms || !newReport.severity) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  if (!newReport.patient_name || !newReport.symptoms || !newReport.severity) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
 
-    // Create new health report
-    const report: HealthReport = {
-      report_id: mockHealthReports.length + 1,
-      patient_name: newReport.patient_name,
-      age: parseInt(newReport.age) || 0,
-      gender: newReport.gender,
-      village_id: user?.village_id || 1,
-      symptoms: newReport.symptoms,
-      severity: newReport.severity as "Mild" | "Moderate" | "Severe",
-      date_of_reporting: new Date().toISOString().split("T")[0],
-      water_source: newReport.water_source,
-      treatment_given: newReport.treatment_given,
-      asha_worker_id: user?.user_id || 0,
-      state: newReport.state,
-      district: newReport.district,
-      village: newReport.village,
-    };
+  // Create new health report object
+  const report: HealthReport = {
+    report_id: mockHealthReports.length + 1,
+    patient_name: newReport.patient_name,
+    age: parseInt(newReport.age) || 0,
+    gender: newReport.gender,
+    village_id: user?.village_id || 1,
+    symptoms: newReport.symptoms,
+    severity: newReport.severity as "Mild" | "Moderate" | "Severe",
+    date_of_reporting: new Date().toISOString().split("T")[0],
+    water_source: newReport.water_source,
+    treatment_given: newReport.treatment_given,
+    asha_worker_id: user?.user_id || 0,
+    state: newReport.state,
+    district: newReport.district,
+    village: newReport.village,
+  };
 
-    // Add to mock data (in real app, this would be sent to backend)
-    //mockHealthReports.push(report);
+  try {
+    const response = await api.post(
+      `/data_collection/health-reports/`,
+      report
+    );
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/data_collection/health-reports/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(report),
-      });
-  
-      if (!response.ok) {
-        throw new Error("Failed to submit health report");
-      } 
-  
-      const data = await response.json();
-      console.log("✅ Report submitted successfully:", data);
-    } catch (error) {
-      console.error("❌ Error submitting report:", error);
-    }
-
-     console.log(report);
-
-     
+    console.log("✅ Report submitted successfully:", response.data);
     toast.success("Health report submitted successfully!");
     setShowNewReport(false);
 
@@ -212,7 +200,13 @@ const villagesCovered = new Set(workerReports.map((report) => report.village_id)
       district: "",
       village: "",
     });
-  };
+  } catch (error) {
+    console.error("❌ Error submitting report:", error);
+    toast.error("Failed to submit health report");
+  }
+
+  console.log(report);
+};
 
   const handleSendAlert = (type: "water" | "disease") => {
     toast.success(
@@ -534,6 +528,7 @@ const villagesCovered = new Set(workerReports.map((report) => report.village_id)
           {/* Right Panel - Statistics & Alerts */}
           <div className="space-y-6">
             {/* Statistics */}
+            <TurbidityCard />
             <Card>
               <CardHeader>
                 <CardTitle>Statistics</CardTitle>
