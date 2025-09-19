@@ -1,19 +1,19 @@
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsNgoUser, IsAdminUser
-from .serializers import NgoSurveySerializer, VillageSerializer
+from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer, VillageDropdownSerializer
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
 from django.db.models import Count, Q, Case, When, CharField, Value
 from rest_framework import generics
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+
 from .models import HealthReport
 from .serializers import HealthReportSerializer
 from django.utils.timezone import now
@@ -26,13 +26,15 @@ from .models import HealthReport
 
 
 
+# ------------------- Health Report APIs -------------------
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def health_report_from_aasha(request):
+    """ASHA worker creates health report"""
     try:
         data = json.loads(request.body.decode("utf-8"))
 
-        # Required fields check
         required_fields = [
             "patient_name", "age", "gender", "village_id", "symptoms",
             "severity", "date_of_reporting", "water_source",
@@ -41,11 +43,8 @@ def health_report_from_aasha(request):
 
         for field in required_fields:
             if field not in data:
-                return JsonResponse(
-                    {"error": f"Missing field: {field}"}, status=400
-                )
+                return JsonResponse({"error": f"Missing field: {field}"}, status=400)
 
-        # Save to DB
         report = HealthReport.objects.create(
             patient_name=data["patient_name"],
             age=int(data["age"]),
@@ -70,6 +69,226 @@ def health_report_from_aasha(request):
     except Exception as e:
         print("Error details:", e)
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def aasha_worker_reports(request):
+    """Fetch ASHA worker health reports with filter"""
+    asha_worker_id = request.query_params.get("asha_worker_id")
+    report_period = request.query_params.get("reportPeriod", "weekly")
+
+    if not asha_worker_id:
+        return Response({"error": "asha_worker_id is required"}, status=400)
+
+    reports = HealthReport.objects.filter(asha_worker_id=asha_worker_id)
+
+    today = timezone.now().date()
+    if report_period == "weekly":
+        start_date = today - timedelta(days=7)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif report_period == "monthly":
+        start_date = today - timedelta(days=30)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+
+    serializer = HealthReportSerializer(reports, many=True)
+
+    return Response({
+        "reports": serializer.data,
+        "total_disease_count": reports.count(),
+    })
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def disease_stats(request):
+    """Symptom wise disease stats for ASHA worker"""
+    asha_worker_id = request.query_params.get("asha_worker_id")
+    filter_period = request.query_params.get("filter", "weekly")
+
+    if not asha_worker_id:
+        return Response({"error": "asha_worker_id is required"}, status=400)
+
+    reports = HealthReport.objects.filter(asha_worker_id=asha_worker_id)
+
+    today = date.today()
+    if filter_period == "weekly":
+        start_date = today - timedelta(days=7)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif filter_period == "monthly":
+        start_date = today - timedelta(days=30)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif filter_period == "6months":
+        start_date = today - timedelta(days=180)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    # else: no filter
+
+    FIXED_SYMPTOMS = [
+        "Fever", "Diarrhea", "Vomiting", "Headache", "Stomach Pain",
+        "Cough", "Cold", "Fatigue", "Nausea", "Skin Rash", "Other"
+    ]
+    symptom_counts = {symptom: 0 for symptom in FIXED_SYMPTOMS}
+
+    for report in reports:
+        for symptom in report.symptoms.split(", "):
+            if symptom in symptom_counts:
+                symptom_counts[symptom] += 1
+            else:
+                symptom_counts["Other"] += 1
+
+    return Response({
+        "disease_counts": symptom_counts,
+        "total_disease_count": reports.count()
+    })
+
+
+# ------------------- NGO Dashboard APIs -------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def surveyed_villages_status(request):
+    """Survey status for NGO villages"""
+    ngo_user = request.user
+    surveys = NgoSurvey.objects.filter(ngo=ngo_user)
+
+    data = []
+    for s in surveys:
+        data.append({
+            "village": s.village.village_name if s.village else None,
+            "clean_water": s.clean_drinking_water,
+            "toilet_coverage": s.toilet_coverage,
+            "waste_disposal": "Advanced" if s.waste_disposal_system else "Basic",
+            "flooding": s.flooding_waterlogging,
+            "awareness": s.awareness_campaigns,
+            "typhoid_cases": s.typhoid_cases,
+            "fever_cases": s.fever_cases,
+            "diarrhea_cases": s.diarrhea_cases,
+        })
+
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def summary_statistics(request):
+    """NGO wise survey summary"""
+    ngo_user = request.user
+    surveys = NgoSurvey.objects.filter(ngo=ngo_user)
+
+    total_villages = surveys.values('village').distinct().count()
+    high_alert_villages = surveys.filter(clean_drinking_water=False).values('village').distinct().count()
+    total_disease_cases = sum(s.typhoid_cases + s.fever_cases + s.diarrhea_cases for s in surveys)
+    no_clean_water = surveys.filter(clean_drinking_water=False).values('village').distinct().count()
+
+    return Response({
+        "total_villages": total_villages,
+        "high_alert_villages": high_alert_villages,
+        "total_disease_cases": total_disease_cases,
+        "villages_without_clean_water": no_clean_water,
+    })
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def disease_stats(request):
+    """Symptom wise disease stats for ASHA worker"""
+    asha_worker_id = request.query_params.get("asha_worker_id")
+    filter_period = request.query_params.get("filter", "weekly")
+
+    if not asha_worker_id:
+        return Response({"error": "asha_worker_id is required"}, status=400)
+
+    reports = HealthReport.objects.filter(asha_worker_id=asha_worker_id)
+
+    today = date.today()
+    if filter_period == "weekly":
+        start_date = today - timedelta(days=7)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif filter_period == "monthly":
+        start_date = today - timedelta(days=30)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif filter_period == "6months":
+        start_date = today - timedelta(days=180)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    # else: no filter
+
+    FIXED_SYMPTOMS = [
+        "Fever", "Diarrhea", "Vomiting", "Headache", "Stomach Pain",
+        "Cough", "Cold", "Fatigue", "Nausea", "Skin Rash", "Other"
+    ]
+    symptom_counts = {symptom: 0 for symptom in FIXED_SYMPTOMS}
+
+    for report in reports:
+        for symptom in report.symptoms.split(", "):
+            if symptom in symptom_counts:
+                symptom_counts[symptom] += 1
+            else:
+                symptom_counts["Other"] += 1
+
+    return Response({
+        "disease_counts": symptom_counts,
+        "total_disease_count": reports.count()
+    })
+
+
+# ------------------- NGO Dashboard APIs -------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def surveyed_villages_status(request):
+    """Survey status for NGO villages"""
+    ngo_user = request.user
+    surveys = NgoSurvey.objects.filter(ngo=ngo_user)
+
+    data = []
+    for s in surveys:
+        data.append({
+            "village": s.village.village_name if s.village else None,
+            "clean_water": s.clean_drinking_water,
+            "toilet_coverage": s.toilet_coverage,
+            "waste_disposal": "Advanced" if s.waste_disposal_system else "Basic",
+            "flooding": s.flooding_waterlogging,
+            "awareness": s.awareness_campaigns,
+            "typhoid_cases": s.typhoid_cases,
+            "fever_cases": s.fever_cases,
+            "diarrhea_cases": s.diarrhea_cases,
+        })
+
+    return Response(data)
+
+
+@api_view(['GET'])
+def get_villages_dropdown(request):
+    villages = Village.objects.all().values('village_id', 'village_name')
+    return Response(list(villages))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def summary_statistics(request):
+    """NGO wise survey summary"""
+    ngo_user = request.user
+    surveys = NgoSurvey.objects.filter(ngo=ngo_user)
+
+    total_villages = surveys.values('village').distinct().count()
+    high_alert_villages = surveys.filter(clean_drinking_water=False).values('village').distinct().count()
+    total_disease_cases = sum(s.typhoid_cases + s.fever_cases + s.diarrhea_cases for s in surveys)
+    no_clean_water = surveys.filter(clean_drinking_water=False).values('village').distinct().count()
+
+    return Response({
+        "total_villages": total_villages,
+        "high_alert_villages": high_alert_villages,
+        "total_disease_cases": total_disease_cases,
+        "villages_without_clean_water": no_clean_water,
+    })
+
+
+class VillageCreateView(generics.ListCreateAPIView):
+    queryset = Village.objects.all()
+    serializer_class = VillageSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
 
 
 
@@ -102,21 +321,6 @@ def aasha_worker_reports(request):  # for asha Worker weekly or monthly report t
     }
 
     return Response(response_data)
-
-
-FIXED_SYMPTOMS = [
-    "Fever",
-    "Diarrhea",
-    "Vomiting",
-    "Headache",
-    "Stomach Pain",
-    "Cough",
-    "Cold",
-    "Fatigue",
-    "Nausea",
-    "Skin Rash",
-    "Other",
-]
 
 
 
@@ -162,14 +366,6 @@ def disease_stats(request):
         "total_disease_count": reports.count()
     })
 
-class VillageCreateView(generics.CreateAPIView):
-    queryset = Village.objects.all()
-    serializer_class = VillageSerializer
-    
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsAuthenticated(), IsAdminUser()]
-        return [IsAuthenticated()]
 
 class NgoSurveyView(APIView):
     permission_classes = [IsAuthenticated, IsNgoUser]
@@ -178,13 +374,14 @@ class NgoSurveyView(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(ngo=request.user)
-        return Response(serializer.data, status=201)
+        survey = serializer.save(ngo=request.user)  # ngo auto-assign
+        return Response(self.serializer_class(survey).data, status=201)
 
     def get(self, request):
         surveys = NgoSurvey.objects.filter(ngo=request.user)
         serializer = self.serializer_class(surveys, many=True)
         return Response(serializer.data)
+
 
 class NgoDashboardSummaryView(APIView):
     permission_classes = [IsAuthenticated, IsNgoUser]
@@ -192,13 +389,14 @@ class NgoDashboardSummaryView(APIView):
     def get(self, request):
         ngo_user = request.user
         total_villages = Village.objects.count()
-        surveyed_count = NgoSurvey.objects.filter(ngo=ngo_user).values('village_id').distinct().count()
+        surveyed_count = NgoSurvey.objects.filter(ngo=ngo_user).values('village').distinct().count()
         pending_count = total_villages - surveyed_count
         return Response({
             "total_villages": total_villages,
             "surveyed_count": surveyed_count,
             "pending_count": pending_count
         })
+
 
 class AdminMapDataView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -216,3 +414,9 @@ class AdminMapDataView(APIView):
         ).values('village_id', 'village_name', 'latitude', 'longitude', 'case_count', 'risk_level')
         return Response(map_data)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_villages_dropdown(request):
+    villages = Village.objects.all()
+    serializer = VillageDropdownSerializer(villages, many=True)
+    return Response(serializer.data)

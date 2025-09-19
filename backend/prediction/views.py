@@ -87,15 +87,17 @@ class AlertSummaryListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        summaries = AlertSummary.objects.all()
+        summaries = AlertSummary.objects.all().order_by("-created_at")
         data = [
             {
-                "id": summary.alert.id,
+                "id": summary.id,
                 "village": summary.alert.village_name,
                 "district": summary.alert.district_name,
                 "state": summary.alert.state_name,
                 "risk_percentage": summary.risk_percentage,
                 "risk_level": summary.risk_level,
+                "summary": summary.summary_text,
+                "created_at": summary.created_at,
             }
             for summary in summaries
         ]
