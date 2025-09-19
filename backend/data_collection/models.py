@@ -18,12 +18,35 @@ class Village(models.Model):
 
 
 
+
+
+class Village(models.Model):
+    state_name = models.CharField(max_length=100)
+    district_name = models.CharField(max_length=100)
+    village_id = models.AutoField(primary_key=True)
+    village_name = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    population = models.IntegerField(null=True, blank=True)
+    def __str__(self):
+        return self.village_name
+# ---------------- Village ----------------
+    class Meta:
+        db_table = "data_collection_village"  # force Django to use existing table
+
 # ---------------- HealthReport ----------------
-class HealthReport(models.Model):
+class HealthReport(models.Model):  
+
     SEVERITY_CHOICES = [
         ("Mild", "Mild"),
         ("Moderate", "Moderate"),
         ("Severe", "Severe"),
+    ]
+
+    WATER_QUALITY_CHOICES = [
+        ("Good", "Good"),
+        ("Moderate", "Moderate"),
+        ("Poor", "Poor"),
     ]
 
     report_id = models.AutoField(primary_key=True)
@@ -37,14 +60,25 @@ class HealthReport(models.Model):
     treatment_given = models.TextField()
     asha_worker_id = models.IntegerField()
 
+
     village = models.ForeignKey(
         Village,
         on_delete=models.CASCADE,
         related_name='health_reports_set'
+
+    state = models.CharField(max_length=100)
+    district = models.CharField(max_length=100)
+    village = models.CharField(max_length=100)
+    water_quality = models.CharField(
+        max_length=10, 
+        choices=WATER_QUALITY_CHOICES, 
+        null=True, 
+        blank=True, 
+        default=None
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     def __str__(self):
         return f"{self.patient_name} - {self.report_id}"
 

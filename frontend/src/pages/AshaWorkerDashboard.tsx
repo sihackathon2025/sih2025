@@ -1,6 +1,7 @@
 import LocationSelector from "@/components/LocationSelector.tsx";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import TurbidityCard from "@/components/TurbidityCard"
 import {
   Card,
   CardContent,
@@ -42,12 +43,83 @@ import {
   getVillageById,
 } from "@/lib/mockData";
 import { toast } from "sonner";
+import api from "../axiosConfig"; // ✅ yaha se import karo
+
 
 const AshaWorkerDashboard = () => {
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showNewReport, setShowNewReport] = useState(false);
   const [reportPeriod, setReportPeriod] = useState("weekly");
+  const [workerReports, setWorkerReports] = useState<HealthReport[]>([]);
+
+  useEffect(() => {
+    const fetchReportPeriod = async () => {
+      console.log("API called");
+      try {
+        const response = await api.get(
+          `/data_collection/aasha_worker_reports/`,
+          {
+            params: {
+              asha_worker_id: user?.user_id || "123456",
+              reportPeriod: reportPeriod,
+            },
+          }
+        );
+
+        setWorkerReports(response.data.reports);
+        console.log("Report period response:", response.data);
+      } catch (error) {
+        console.error("Error fetching report period:", error);
+      }
+    };
+
+    fetchReportPeriod();
+  }, [reportPeriod, user?.user_id]);
+
+// State
+const [statsFilter, setStatsFilter] = useState<"total" | "weekly" | "monthly" | "6months">("weekly");
+const [diseaseStats, setDiseaseStats] = useState<{ [key: string]: number }>({});
+const [totalDiseaseCount, setTotalDiseaseCount] = useState(0);
+
+// Fetch data when filter or user changes
+useEffect(() => {
+  const fetchDiseaseStats = async () => {
+    try {
+      const response = await api.get(
+        `/data_collection/disease_stats/`,
+        {
+          params: {
+            asha_worker_id: user?.user_id,
+            filter: statsFilter,
+          },
+        }
+      );
+
+      // Backend se expected response:
+      // {
+      //   "disease_counts": { "Fever": 5, "Diarrhea": 2, ... },
+      //   "total_disease_count": 15
+      // }
+
+      const data = response.data;
+
+      setDiseaseStats(data.disease_counts || {}); // fallback empty object
+      setTotalDiseaseCount(data.total_disease_count || 0); // fallback 0
+
+      console.log("Disease Counts:", data.disease_counts);
+      console.log("Total Disease Count:", data.total_disease_count);
+    } catch (error) {
+      console.error("❌ Error fetching disease stats:", error);
+      setDiseaseStats({});
+      setTotalDiseaseCount(0);
+    }
+  };
+
+  if (user?.user_id) fetchDiseaseStats();
+}, [statsFilter, user?.user_id]);
+
+
 
   const [newReport, setNewReport] = useState({
     patient_name: "",
@@ -62,86 +134,56 @@ const AshaWorkerDashboard = () => {
     village: "",
   });
   
-  
+  // Calculate statistics dynamically from fetched data
+const totalWaterContaminationCases = workerReports.filter(
+  (report) =>
+    report.water_source.toLowerCase().includes("well") ||
+    report.water_source.toLowerCase().includes("river"),
+).length;
 
-  // Get reports by this ASHA worker
-  const workerReports = mockHealthReports.filter(
-    (report) => report.asha_worker_id === user?.user_id,
-  );
+const diseaseWiseCases = workerReports.reduce((acc, report) => {
+  const symptoms = report.symptoms.split(", ");
+  symptoms.forEach((symptom) => {
+    acc[symptom] = (acc[symptom] || 0) + 1;
+  });
+  return acc;
+}, {} as { [key: string]: number });
 
-  // Calculate statistics
-  const totalWaterContaminationCases = workerReports.filter(
-    (report) =>
-      report.water_source.toLowerCase().includes("well") ||
-      report.water_source.toLowerCase().includes("river"),
-  ).length;
+const villagesCovered = new Set(workerReports.map((report) => report.village_id)).size;
 
-  const diseaseWiseCases = workerReports.reduce(
-    (acc, report) => {
-      const symptoms = report.symptoms.split(", ");
-      symptoms.forEach((symptom) => {
-        acc[symptom] = (acc[symptom] || 0) + 1;
-      });
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
+const handleSubmitReport = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  const villagesCovered = new Set(
-    workerReports.map((report) => report.village_id),
-  ).size;
+  if (!newReport.patient_name || !newReport.symptoms || !newReport.severity) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
 
-  const handleSubmitReport = async (e: React.FormEvent) =>  {
-    e.preventDefault();
+  // Create new health report object
+  const report: HealthReport = {
+    report_id: mockHealthReports.length + 1,
+    patient_name: newReport.patient_name,
+    age: parseInt(newReport.age) || 0,
+    gender: newReport.gender,
+    village_id: user?.village_id || 1,
+    symptoms: newReport.symptoms,
+    severity: newReport.severity as "Mild" | "Moderate" | "Severe",
+    date_of_reporting: new Date().toISOString().split("T")[0],
+    water_source: newReport.water_source,
+    treatment_given: newReport.treatment_given,
+    asha_worker_id: user?.user_id || 0,
+    state: newReport.state,
+    district: newReport.district,
+    village: newReport.village,
+  };
 
-    if (!newReport.patient_name || !newReport.symptoms || !newReport.severity) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  try {
+    const response = await api.post(
+      `/data_collection/health-reports/`,
+      report
+    );
 
-    // Create new health report
-    const report: HealthReport = {
-      report_id: mockHealthReports.length + 1,
-      patient_name: newReport.patient_name,
-      age: parseInt(newReport.age) || 0,
-      gender: newReport.gender,
-      village_id: user?.village_id || 1,
-      symptoms: newReport.symptoms,
-      severity: newReport.severity as "Mild" | "Moderate" | "Severe",
-      date_of_reporting: new Date().toISOString().split("T")[0],
-      water_source: newReport.water_source,
-      treatment_given: newReport.treatment_given,
-      asha_worker_id: user?.user_id || 0,
-      state: newReport.state,
-      district: newReport.district,
-      village: newReport.village,
-    };
-
-    // Add to mock data (in real app, this would be sent to backend)
-    //mockHealthReports.push(report);
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/data_collection/health-reports/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(report),
-      });
-  
-      if (!response.ok) {
-        throw new Error("Failed to submit health report");
-      } 
-  
-      const data = await response.json();
-      console.log("✅ Report submitted successfully:", data);
-    } catch (error) {
-      console.error("❌ Error submitting report:", error);
-    }
-
-     console.log(report);
-
-     
+    console.log("✅ Report submitted successfully:", response.data);
     toast.success("Health report submitted successfully!");
     setShowNewReport(false);
 
@@ -158,7 +200,13 @@ const AshaWorkerDashboard = () => {
       district: "",
       village: "",
     });
-  };
+  } catch (error) {
+    console.error("❌ Error submitting report:", error);
+    toast.error("Failed to submit health report");
+  }
+
+  console.log(report);
+};
 
   const handleSendAlert = (type: "water" | "disease") => {
     toast.success(
@@ -196,7 +244,15 @@ const AshaWorkerDashboard = () => {
           </div>
         </div>
       </header>
-
+      {/* Alert Marquee */}
+      <div className="bg-red-600 text-white py-2 overflow-hidden">
+        <div className="animate-pulse">
+          <marquee className="text-sm">
+            🚨 ALERT: High contamination levels detected in multiple water sources. Immediate action required.
+            Disease cases increasing in Kohima and Guwahati regions. Enhanced surveillance recommended.
+          </marquee>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Panel - Survey Reporting */}
@@ -302,20 +358,48 @@ const AshaWorkerDashboard = () => {
                         </div>
 
                         <div>
-                          <Label htmlFor="symptoms">Symptoms *</Label>
-                          <Textarea
-                            id="symptoms"
-                            placeholder="e.g., Fever, Diarrhea, Vomiting"
-                            value={newReport.symptoms}
-                            onChange={(e) =>
-                              setNewReport({
-                                ...newReport,
-                                symptoms: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
+                        <Label htmlFor="symptoms">Symptoms *</Label>
+                        <select
+                         id="symptoms"
+                         value={newReport.symptoms}
+                         onChange={(e) =>
+                        setNewReport({
+                        ...newReport,
+                          symptoms: e.target.value,
+                           })
+                          }
+    required
+    className="w-full border rounded-md p-2"
+  >
+    <option value="">Select a symptom</option>
+    <option value="Fever">Fever</option>
+    <option value="Diarrhea">Diarrhea</option>
+    <option value="Vomiting">Vomiting</option>
+    <option value="Headache">Headache</option>
+    <option value="Stomach Pain">Stomach Pain</option>
+    <option value="Cough">Cough</option>
+    <option value="Cold">Cold</option>
+    <option value="Fatigue">Fatigue</option>
+    <option value="Nausea">Nausea</option>
+    <option value="Skin Rash">Skin Rash</option>
+    <option value="Other">Other</option>
+  </select>
+
+  {newReport.symptoms === "Other" && (
+    <Textarea
+      id="other-symptom"
+      placeholder="Enter other symptom"
+      value={newReport.symptoms === "Other" ? "" : newReport.symptoms}
+      onChange={(e) =>
+        setNewReport({
+          ...newReport,
+          symptoms: e.target.value,
+        })
+      }
+      className="mt-2"
+    />
+  )}
+</div>
 
                         <div>
                           <Label htmlFor="severity">Severity *</Label>
@@ -444,56 +528,51 @@ const AshaWorkerDashboard = () => {
           {/* Right Panel - Statistics & Alerts */}
           <div className="space-y-6">
             {/* Statistics */}
+            <TurbidityCard />
             <Card>
               <CardHeader>
                 <CardTitle>Statistics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                      Total Water Contamination Cases
-                    </span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      {totalWaterContaminationCases}
-                    </span>
-                  </div>
-                </div>
+  {/* Total Water Contamination Cases */}
+  <div className="flex justify-between items-center">
+    <span className="text-sm text-gray-600">Total Water Contamination Cases</span>
+    <span className="text-2xl font-bold text-blue-600">{totalDiseaseCount}</span>
+  </div>
 
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">
-                    Disease-wise Case Count
-                  </h4>
-                  <div className="space-y-2">
-                    {Object.entries(diseaseWiseCases).map(
-                      ([disease, count]) => (
-                        <div key={disease} className="flex justify-between">
-                          <span className="text-sm text-gray-600">
-                            {disease}
-                          </span>
-                          <span className="font-medium">{count}</span>
-                        </div>
-                      ),
-                    )}
-                    {Object.keys(diseaseWiseCases).length === 0 && (
-                      <p className="text-sm text-gray-500">
-                        No cases reported yet
-                      </p>
-                    )}
-                  </div>
-                </div>
+  {/* Disease-wise Case Count */}
+  <div className="flex justify-between items-center">
+    <h4 className="text-sm font-medium text-gray-700 mb-2">Disease-wise Case Count</h4>
+    <select
+      value={statsFilter}
+      onChange={(e) => setStatsFilter(e.target.value as typeof statsFilter)}
+      className="border rounded-md p-1 text-sm"
+    >
+      <option value="total">Total</option>
+      <option value="weekly">This Week</option>
+      <option value="monthly">This Month</option>
+      <option value="6months">6 Months</option>
+    </select>
+  </div>
 
-                <div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                      Villages Covered
-                    </span>
-                    <span className="text-2xl font-bold text-green-600">
-                      {villagesCovered}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
+  {/* List disease stats */}
+  <div className="space-y-2">
+  {Object.entries(diseaseStats)
+    .filter(([_, count]) => count > 0) // ✅ Only show if count > 0
+    .map(([disease, count]) => (
+      <div key={disease} className="flex justify-between">
+        <span className="text-sm text-gray-600">{disease}</span>
+        <span className="font-medium">{count}</span>
+      </div>
+    ))}
+
+  {/* If no symptoms have count > 0 */}
+  {Object.values(diseaseStats).every((count) => count === 0) && (
+    <p className="text-sm text-gray-500">No cases reported yet</p>
+  )}
+  </div>
+
+</CardContent>
             </Card>
 
             {/* Alert Section */}
