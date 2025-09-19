@@ -36,16 +36,16 @@ class HealthReport(models.Model):
     patient_name = models.CharField(max_length=255)
     age = models.IntegerField()
     gender = models.CharField(max_length=10)
-    village_id = models.IntegerField()
+    village_id = models.IntegerField(null=True, blank=True)
     symptoms = models.TextField()
     severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES)
     date_of_reporting = models.DateField()
     water_source = models.CharField(max_length=100)
     treatment_given = models.TextField()
     asha_worker_id = models.IntegerField()
-    state = models.CharField(max_length=100)
-    district = models.CharField(max_length=100)
-    village = models.CharField(max_length=100)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    district = models.CharField(max_length=100, null=True, blank=True)
+    village = models.CharField(max_length=100, null=True, blank=True)
     water_quality = models.CharField(
         max_length=10, 
         choices=WATER_QUALITY_CHOICES, 
@@ -85,6 +85,7 @@ class Ngo_HealthReport(models.Model):
 
 # ---------------- ClinicReport ----------------
 class ClinicReport(models.Model):
+    report_id = models.AutoField(primary_key=True)
     village = models.ForeignKey(Village, on_delete=models.CASCADE)
     typhoid_cases = models.PositiveIntegerField(default=0)
     fever_cases = models.PositiveIntegerField(default=0)
