@@ -3,12 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsNgoUser, IsAdminUser
-
-
 from .models import ClinicReport
-
 from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer, VillageDropdownSerializer,ClinicReportSerializer
-
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
 from datetime import timedelta, date
@@ -18,11 +14,6 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-
-
-
-
-
 from .models import HealthReport
 from .serializers import HealthReportSerializer
 from django.utils.timezone import now
