@@ -10,6 +10,9 @@ from .views import (
     surveyed_villages_status,
     summary_statistics,
     get_villages_dropdown,
+
+    ClinicReportView
+
 )
 
 
@@ -30,4 +33,11 @@ urlpatterns = [
 
     # Admin dashboard related
     path("admin-dashboard/map-data/", AdminMapDataView.as_view(), name="admin-map-data"),
+
+
+    # Clinic related
+    path("clinic-reports/", ClinicReportView.as_view(), name="clinic-reports"),
 ]
+
+
+
