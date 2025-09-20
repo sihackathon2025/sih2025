@@ -1,7 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import NgoSurvey, Village, HealthReport
+
+from .models import NgoSurvey, Village, HealthReport,ClinicReport
+
+
 from users.models import User
+
 
 User = get_user_model()   # ✅ User model le liya
 
@@ -55,3 +59,35 @@ class NgoSurveySerializer(serializers.ModelSerializer):
             'diarrhea_cases',
             'created_at',
         )
+
+
+# ---------------- ClinicReport Serializer ----------------
+class ClinicReportSerializer(serializers.ModelSerializer):
+    village_id = serializers.PrimaryKeyRelatedField(
+        queryset=Village.objects.all(),
+        source="village"
+    )
+    clinic_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="clinic",
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = ClinicReport
+        fields = (
+            "report_id",
+            "village_id",
+            "clinic_id",
+            "typhoid_cases",
+            "fever_cases",
+            "diarrhea_cases",
+            "cholera_cases",
+            "hospitalized_cases",
+            "deaths_reported",
+            "date_of_reporting",
+            "created_at",
+        )
+        read_only_fields = ("report_id", "created_at")
+
