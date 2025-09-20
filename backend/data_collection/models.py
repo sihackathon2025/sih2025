@@ -36,7 +36,6 @@ class Village(models.Model):
 
 # ---------------- HealthReport ----------------
 class HealthReport(models.Model):  
-
     SEVERITY_CHOICES = [
         ("Mild", "Mild"),
         ("Moderate", "Moderate"),
@@ -53,19 +52,13 @@ class HealthReport(models.Model):
     patient_name = models.CharField(max_length=255)
     age = models.IntegerField()
     gender = models.CharField(max_length=10)
+    village_id = models.IntegerField()
     symptoms = models.TextField()
     severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES)
     date_of_reporting = models.DateField()
     water_source = models.CharField(max_length=100)
     treatment_given = models.TextField()
     asha_worker_id = models.IntegerField()
-
-
-    village = models.ForeignKey(
-        Village,
-        on_delete=models.CASCADE,
-        related_name='health_reports_set'
-
     state = models.CharField(max_length=100)
     district = models.CharField(max_length=100)
     village = models.CharField(max_length=100)
@@ -81,7 +74,6 @@ class HealthReport(models.Model):
     
     def __str__(self):
         return f"{self.patient_name} - {self.report_id}"
-
 
 # ---------------- NgoSurvey ----------------
 class NgoSurvey(models.Model):
@@ -109,7 +101,16 @@ class Ngo_HealthReport(models.Model):
 
 # ---------------- ClinicReport ----------------
 class ClinicReport(models.Model):
-    report_id = models.BigAutoField(primary_key=True)
+
+    report_id = models.AutoField(primary_key=True)
+    village = models.ForeignKey(Village, on_delete=models.CASCADE)
+    typhoid_cases = models.PositiveIntegerField(default=0)
+    fever_cases = models.PositiveIntegerField(default=0)
+    diarrhea_cases = models.PositiveIntegerField(default=0)
+    cholera_cases = models.PositiveIntegerField(default=0)
+    hospitalized_cases = models.PositiveIntegerField(default=0)
+    deaths_reported = models.PositiveIntegerField(default=0)
+
 
     village = models.ForeignKey(
         'Village',
@@ -127,25 +128,7 @@ class ClinicReport(models.Model):
         related_name="clinic_reports"
     )
 
-    typhoid_cases = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)], default=0
-    )
-    fever_cases = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)], default=0
-    )
-    diarrhea_cases = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)], default=0
-    )
-    cholera_cases = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)], default=0
-    )
-    hospitalized_cases = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)], default=0
-    )
-    deaths_reported = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)], default=0
-    )
-
+  
     date_of_reporting = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -30,6 +30,12 @@ import {
 import { useAuth } from "@/components/AuthContext";
 import { toast } from "sonner";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ShieldCheck,
   HandHeart,
   Hospital,
@@ -50,6 +56,7 @@ import {
   Snowflake,
   Building,
   SquareStack,
+  Globe,
 } from "lucide-react";
 import ProcessTimeline from "@/components/ProcessTimeline";
 import StateCards from "@/components/StateCards";
@@ -147,14 +154,9 @@ const Landing = () => {
     setIsRegisterOpen(true);
   };
 
-  // Language toggle function
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-100 text-gray-800">
-      <AppHeader onLoginClick={() => setIsLoginOpen(true)} toggleLanguage={toggleLanguage} currentLanguage={i18n.language} />
+      <AppHeader onLoginClick={() => setIsLoginOpen(true)} />
 
       <main>
         <HeroSection
@@ -192,8 +194,8 @@ const Landing = () => {
 
 // --- Sub-components for Cleaner Structure ---
 
-const AppHeader = ({ onLoginClick, toggleLanguage, currentLanguage }: { onLoginClick: () => void; toggleLanguage: () => void; currentLanguage: string }) => {
-  const { t } = useTranslation(); // Initialize useTranslation
+const AppHeader = ({ onLoginClick }: { onLoginClick: () => void; }) => {
+  const { t, i18n } = useTranslation(); // Initialize useTranslation
   return (
     <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -233,9 +235,28 @@ const AppHeader = ({ onLoginClick, toggleLanguage, currentLanguage }: { onLoginC
             >
               {t("login")}
             </Button>
-            <Button onClick={toggleLanguage} variant="outline" className="border-gray-400 text-gray-600 hover:bg-gray-100">
-              {currentLanguage === 'en' ? 'हिंदी' : 'English'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Globe className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Change language</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => i18n.changeLanguage('en')}>
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => i18n.changeLanguage('hi')}>
+                  हिंदी
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => i18n.changeLanguage('kha')}>
+                  Khasi
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => i18n.changeLanguage('brx')}>
+                  Bodo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
