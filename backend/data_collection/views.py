@@ -3,9 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsNgoUser, IsAdminUser
-
 from .models import ClinicReport
-from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer, VillageDropdownSerializer,ClinicReportSerializer
+from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer,ClinicReportSerializer
 
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
@@ -362,7 +361,6 @@ def disease_stats(request):
         "total_disease_count": reports.count()
     })
 
-class VillageCreateView(generics.CreateAPIView):
 
 class VillageCreateView(generics.ListCreateAPIView):
 
