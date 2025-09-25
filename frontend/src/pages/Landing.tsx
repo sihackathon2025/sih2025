@@ -600,6 +600,14 @@ const LoginDialog = ({
             <p>
               <strong>ASHA:</strong> ram.asha@gmail.com (pass: 12345)
             </p>
+
+            <p>
+              <strong>NGO:</strong> contact@nehealthngo.org (contact123)
+            </p>
+            <p>
+              <strong>Clinic:</strong> info@kohimamedical.com (info123)
+            </p>
+
           </div>
         </form>
       </DialogContent>

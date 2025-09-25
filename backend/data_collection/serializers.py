@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+
 from .models import NgoSurvey, Village, HealthReport,ClinicReport
+
 from users.models import User
 
 
@@ -11,6 +13,12 @@ class VillageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Village
         fields = '__all__'
+
+# ---------------- Village Dropdown Serializer ----------------
+class VillageDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Village
+        fields = ("village_id", "village_name")
 
 
 # ---------------- HealthReport Serializer ----------------

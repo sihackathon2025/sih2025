@@ -10,7 +10,6 @@ from .views import (
     surveyed_villages_status,
     summary_statistics,
     get_villages_dropdown,
-
     ClinicReportView
 
 )

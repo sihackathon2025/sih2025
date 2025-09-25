@@ -4,8 +4,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsNgoUser, IsAdminUser
 from .models import ClinicReport
-from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer,ClinicReportSerializer
-
+from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer, VillageDropdownSerializer, ClinicReportSerializer
+from .models import ClinicReport
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
 from datetime import timedelta, date

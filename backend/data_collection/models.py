@@ -4,21 +4,6 @@ from django.core.validators import MinValueValidator
 
 
 # ---------------- Village ----------------
-class Village(models.Model):
-    village_id = models.AutoField(primary_key=True)
-    village_name = models.CharField(max_length=255, db_column="village_name")
-    state = models.CharField(max_length=100, db_column="state_name")
-    district = models.CharField(max_length=100, db_column="district_name")
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    population = models.IntegerField(null=True, blank=True)
-
-    class Meta:
-        db_table = "data_collection_village"  # force Django to use existing table
-
-
-
-
 
 class Village(models.Model):
     state_name = models.CharField(max_length=100)
@@ -30,7 +15,6 @@ class Village(models.Model):
     population = models.IntegerField(null=True, blank=True)
     def __str__(self):
         return self.village_name
-# ---------------- Village ----------------
     class Meta:
         db_table = "data_collection_village"  # force Django to use existing table
 
