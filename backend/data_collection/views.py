@@ -3,8 +3,10 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsNgoUser, IsAdminUser
-from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer,ClinicReportSerializer
+
 from .models import ClinicReport
+from .serializers import NgoSurveySerializer, VillageSerializer, HealthReportSerializer, VillageDropdownSerializer, ClinicReportSerializer
+
 from data_collection.models import NgoSurvey, Village, HealthReport
 from django.utils import timezone
 from datetime import timedelta, date
@@ -14,6 +16,17 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from .models import HealthReport
+from .serializers import HealthReportSerializer
+from django.utils.timezone import now
+from datetime import timedelta
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from datetime import date, timedelta
+from .models import HealthReport
+
+
 
 
 # ------------------- Health Report APIs -------------------
@@ -274,6 +287,7 @@ def summary_statistics(request):
     })
 
 
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def aasha_worker_reports(request):
@@ -348,10 +362,90 @@ def disease_stats(request):
         "total_disease_count": reports.count()
     })
 
-class VillageCreateView(generics.CreateAPIView):
+
+class VillageCreateView(generics.ListCreateAPIView):
+
     queryset = Village.objects.all()
     serializer_class = VillageSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def aasha_worker_reports(request):  # for asha Worker weekly or monthly report table data fetch
+    asha_worker_id = request.query_params.get("asha_worker_id")
+    report_period = request.query_params.get("reportPeriod", "weekly")
+    
+    if not asha_worker_id:
+        return Response({"error": "asha_worker_id is required"}, status=400)
+
+    reports = HealthReport.objects.filter(asha_worker_id=asha_worker_id)
+
+    # Filter by report period
+    today = now().date()
+    if report_period == "weekly":
+        start_date = today - timedelta(days=7)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif report_period == "monthly":
+        start_date = today - timedelta(days=30)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+
+    serializer = HealthReportSerializer(reports, many=True)
+    
+    # Prepare response with total disease count
+    response_data = {
+        "reports": serializer.data,                # same array your table uses
+        "total_disease_count": reports.count(),    # new parameter
+    }
+
+    return Response(response_data)
+
+
+
+FIXED_SYMPTOMS = [
+    "Fever", "Diarrhea", "Vomiting", "Headache", "Stomach Pain",
+    "Cough", "Cold", "Fatigue", "Nausea", "Skin Rash", "Other"
+]
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def disease_stats(request):
+    asha_worker_id = request.query_params.get("asha_worker_id")
+    filter_period = request.query_params.get("filter", "weekly")
+
+    if not asha_worker_id:
+        return Response({"error": "asha_worker_id is required"}, status=400)
+
+    reports = HealthReport.objects.filter(asha_worker_id=asha_worker_id)
+
+    today = date.today()
+    if filter_period == "weekly":
+        start_date = today - timedelta(days=7)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif filter_period == "monthly":
+        start_date = today - timedelta(days=30)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    elif filter_period == "6months":
+        start_date = today - timedelta(days=180)
+        reports = reports.filter(date_of_reporting__gte=start_date)
+    # total = no date filter
+
+    symptom_counts = {symptom: 0 for symptom in FIXED_SYMPTOMS}
+
+    for report in reports:
+        for symptom in report.symptoms.split(", "):
+            if symptom in symptom_counts:
+                symptom_counts[symptom] += 1
+            else:
+                symptom_counts["Other"] += 1
+
+    return Response({
+        "disease_counts": symptom_counts,
+        "total_disease_count": reports.count()
+    })
+
 
 class NgoSurveyView(APIView):
     permission_classes = [IsAuthenticated, IsNgoUser]
@@ -400,6 +494,7 @@ class AdminMapDataView(APIView):
         ).values('village_id', 'village_name', 'latitude', 'longitude', 'case_count', 'risk_level')
         return Response(map_data)
 
+
 #clinc report api 
 class ClinicReportView(APIView):
     permission_classes = [IsAuthenticated]
@@ -416,3 +511,20 @@ class ClinicReportView(APIView):
         reports = ClinicReport.objects.filter(clinic=request.user)
         serializer = ClinicReportSerializer(reports, many=True)
         return Response(serializer.data)
+# class ClinicReportView(generics.ListCreateAPIView):
+#     queryset = ClinicReport.objects.all().order_by("-date_of_reporting")
+#     serializer_class = ClinicReportSerializer
+
+#     def get_queryset(self):
+#         clinic_id = self.request.query_params.get("clinic_id")
+#         if clinic_id:
+#             return self.queryset.filter(clinic_id=clinic_id).order_by("-date_of_reporting")
+#         return self.queryset
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_villages_dropdown(request):
+    villages = Village.objects.all()
+    serializer = VillageDropdownSerializer(villages, many=True)
+    return Response(serializer.data)
+

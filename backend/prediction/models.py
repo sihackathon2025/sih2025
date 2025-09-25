@@ -1,11 +1,15 @@
 from django.db import models
 
 class EarlyWarningAlert(models.Model):
+    clinic_id = models.IntegerField(null=True, blank=True)
+    asha_worker_id = models.IntegerField(null=True, blank=True)
+    ngo_id = models.IntegerField(null=True, blank=True)
     village_name = models.CharField(max_length=255)
     district_name = models.CharField(max_length=255)
     state_name = models.CharField(max_length=255)
     rbalert = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)   # record create hone ka time
+    updated_at = models.DateTimeField(auto_now=True)       # record update hone ka time
 
     def __str__(self):
         return f"{self.village_name}, {self.district_name}, {self.state_name}"

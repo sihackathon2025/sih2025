@@ -11,14 +11,19 @@ import { mockHealthReports, getVillageById } from "@/lib/mockData";
 import { toast } from "sonner";
 import api from "../axiosConfig";
 import { getCurrentUser } from "../api/authConfig";
- 
+
 
 const ClinicDashboard = () => {
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
-  const [reportPeriod, setReportPeriod] = useState('weekly');
+  const [reportPeriod, setReportPeriod] = useState<"weekly" | "monthly">("weekly");
   const [villages, setVillages] = useState<any[]>([]);
   const [openForm, setOpenForm] = useState(false);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<{ totalCases: number; diseaseBreakdown: Record<string, number> }>({
+    totalCases: 0,
+    diseaseBreakdown: {},
+  });
 
   const [formData, setFormData] = useState({
     typhoid_cases: 0,
@@ -32,6 +37,62 @@ const ClinicDashboard = () => {
     clinic_id: user?.user_id || null,
   });
 
+  
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const user = getCurrentUser();
+        const res = await api.get(`/data_collection/clinic-reports/`, {
+          headers: { Authorization: `Bearer ${user?.token}` },
+        });
+
+        const reports = res.data;
+
+        // 🔹 Build Weekly Data (flatten reports)
+        const weeklyRows: any[] = [];
+        reports.forEach((report: any) => {
+          const date = report.date_of_reporting;
+          const village = `Village ${report.village_id}`; // (replace with actual village lookup if you have it)
+
+          if (report.typhoid_cases > 0)
+            weeklyRows.push({ date, disease: "Typhoid", cases: report.typhoid_cases, village });
+          if (report.fever_cases > 0)
+            weeklyRows.push({ date, disease: "Fever", cases: report.fever_cases, village });
+          if (report.diarrhea_cases > 0)
+            weeklyRows.push({ date, disease: "Diarrhea", cases: report.diarrhea_cases, village });
+          if (report.cholera_cases > 0)
+            weeklyRows.push({ date, disease: "Cholera", cases: report.cholera_cases, village });
+        });
+
+        setWeeklyData(weeklyRows);
+
+        // 🔹 Build Monthly Data (aggregate)
+        const diseaseCounts: Record<string, number> = {};
+        let total = 0;
+
+        reports.forEach((report: any) => {
+          diseaseCounts["Typhoid"] = (diseaseCounts["Typhoid"] || 0) + report.typhoid_cases;
+          diseaseCounts["Fever"] = (diseaseCounts["Fever"] || 0) + report.fever_cases;
+          diseaseCounts["Diarrhea"] = (diseaseCounts["Diarrhea"] || 0) + report.diarrhea_cases;
+          diseaseCounts["Cholera"] = (diseaseCounts["Cholera"] || 0) + report.cholera_cases;
+
+          total +=
+            report.typhoid_cases +
+            report.fever_cases +
+            report.diarrhea_cases +
+            report.cholera_cases;
+        });
+
+        setMonthlyData({ totalCases: total, diseaseBreakdown: diseaseCounts });
+      } catch (err) {
+        console.error("Error fetching clinic reports:", err);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  
   // Fetch villages for dropdown
   useEffect(() => {
     const fetchVillages = async () => {
@@ -118,8 +179,6 @@ const ClinicDashboard = () => {
     };
   };
 
-  const weeklyData = getWeeklyReportData();
-  const monthlyData = getMonthlyReportSummary();
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -3,7 +3,7 @@ from .views import (
     NgoSurveyView,
     NgoDashboardSummaryView,
     AdminMapDataView,
-    VillageCreateView,   
+    VillageCreateView,
     health_report_from_aasha,
     aasha_worker_reports,
     disease_stats,
@@ -11,6 +11,7 @@ from .views import (
     summary_statistics,
     get_villages_dropdown,
     ClinicReportView
+
 )
 
 
@@ -32,6 +33,10 @@ urlpatterns = [
     # Admin dashboard related
     path("admin-dashboard/map-data/", AdminMapDataView.as_view(), name="admin-map-data"),
 
+
     # Clinic related
     path("clinic-reports/", ClinicReportView.as_view(), name="clinic-reports"),
 ]
+
+
+
