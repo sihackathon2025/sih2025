@@ -361,7 +361,6 @@ def disease_stats(request):
         "total_disease_count": reports.count()
     })
 
-class VillageCreateView(generics.CreateAPIView):
 
 class VillageCreateView(generics.ListCreateAPIView):
 
