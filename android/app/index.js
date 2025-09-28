@@ -53,13 +53,13 @@ const ProcessTimeline = ({ steps }) => {
 const StateCards = () => {
     const { t } = useTranslation();
     const statesData = [
-        { nameKey: "arunachal_pradesh", icon: <Mountain size={28} />, url: "https://arunachalhealth.com/", color: '#dbeafe' },
-        { nameKey: "assam", icon: <Coffee size={28} />, url: "https://health.assam.gov.in/", color: '#dcfce7' },
-        { nameKey: "manipur", icon: <Swords size={28} />, url: "https://mn.gov.in/", color: '#ede9fe' },
+        { nameKey: "arunachal_pradesh", icon: <Mountain size={28} />, url: "https://health.arunachal.gov.in/", color: '#dbeafe' },
+        { nameKey: "assam", icon: <Coffee size={28} />, url: "https://dhs.assam.gov.in/", color: '#dcfce7' },
+        { nameKey: "manipur", icon: <Swords size={28} />, url: "https://manipur.mygov.in/group/directorate-health-services/", color: '#ede9fe' },
         { nameKey: "meghalaya", icon: <CloudRain size={28} />, url: "https://meghealth.gov.in/", color: '#e5e7eb' },
         { nameKey: "mizoram", icon: <SquareStack size={28} />, url: "https://health.mizoram.gov.in/", color: '#fce7f3' },
-        { nameKey: "nagaland", icon: <Feather size={28} />, url: "https://health.nagaland.gov.in/", color: '#fef3c7' },
-        { nameKey: "sikkim", icon: <Snowflake size={28} />, url: "http://health.sikkim.gov.in/", color: '#fee2e2' },
+        { nameKey: "nagaland", icon: <Feather size={28} />, url: "https://nagahealth.nagaland.gov.in/", color: '#fef3c7' },
+        { nameKey: "sikkim", icon: <Snowflake size={28} />, url: "https://www.sikkim.gov.in/departments/health-family-welfare-department", color: '#fee2e2' },
         { nameKey: "tripura", icon: <Building size={28} />, url: "https://health.tripura.gov.in/", color: '#ffedd5' },
     ];
 

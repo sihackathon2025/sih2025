@@ -13,6 +13,8 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="adminDashboard" options={{ title: 'Admin Dashboard' }} />
         <Stack.Screen name="ashaDashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="clinicDashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="ngoDashboard" options={{ headerShown: false }} />
       </Stack>
       <Toast />
       <StatusBar style="auto" />
