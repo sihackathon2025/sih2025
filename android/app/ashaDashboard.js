@@ -1,7 +1,7 @@
 // app/ashaDashboard.js
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, TextInput, Button } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, TextInput, Button, Alert, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/AuthContext';
 import api from '../lib/api';
@@ -10,6 +10,7 @@ import { Picker } from '@react-native-picker/picker';
 import { LogOut, Droplets, AlertTriangle } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import LocationSelector from './LocationSelector';
+import { useFocusEffect } from '@react-navigation/native';
 
 // --- CONSTANTS FOR PICKERS ---
 const SYMPTOM_OPTIONS = ["Fever", "Diarrhea", "Vomiting", "Headache", "Stomach Pain", "Cough", "Cold", "Fatigue", "Nausea", "Skin Rash", "Other"];
@@ -18,6 +19,7 @@ const WATER_SOURCE_OPTIONS = ["Well Water", "Borewell Water", "Municipal Water",
 // --- CHILD COMPONENTS ---
 
 const TurbidityCard = () => {
+  const { user } = useAuth();
   const [turbidity, setTurbidity] = useState(null);
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef(null);
@@ -32,7 +34,20 @@ const TurbidityCard = () => {
   useEffect(() => {
     isMountedRef.current = true;
 
+    // Only start fetching if user exists
+    if (!user?.user_id) {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      return;
+    }
+
     const fetchLatest = async () => {
+      // Check if user still exists before making API call
+      if (!user?.user_id || !isMountedRef.current) {
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from("sensor_reading")
@@ -41,7 +56,7 @@ const TurbidityCard = () => {
           .limit(1)
           .single();
 
-        if (isMountedRef.current) {
+        if (isMountedRef.current && user?.user_id) {
           if (!error && data) {
             setTurbidity(data.turbidity_reading);
           } else if (error) {
@@ -50,7 +65,7 @@ const TurbidityCard = () => {
           setLoading(false);
         }
       } catch (error) {
-        if (isMountedRef.current) {
+        if (isMountedRef.current && user?.user_id) {
           console.error("Error fetching turbidity:", error);
           setLoading(false);
         }
@@ -66,7 +81,7 @@ const TurbidityCard = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, [user?.user_id]);
 
   const quality = turbidity !== null ? getQuality(turbidity) : null;
 
@@ -124,14 +139,17 @@ const StatisticsCard = ({ stats, filter, onFilterChange }) => {
   };
   
 const QuickSummaryCard = ({ reports }) => {
-    // Add safety check for reports prop
     const safeReports = reports || [];
-    const severeCases = safeReports.filter(r => r.severity === "Severe").length;
+    const severeCases = safeReports.filter(r => r?.severity === "Severe").length;
     const thisWeek = safeReports.filter(r => {
-        const reportDate = new Date(r.date_of_reporting);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return reportDate >= weekAgo;
+        try {
+          const reportDate = new Date(r.date_of_reporting);
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return reportDate >= weekAgo;
+        } catch {
+          return false;
+        }
     }).length;
 
     return (
@@ -175,10 +193,17 @@ const NewReportModal = ({ visible, onClose, onSubmit }) => {
     }, [visible, user]);
 
     const handleSubmit = async () => {
+        if (!user) {
+            Toast.show({type: 'error', text1: 'Please login to submit reports.'});
+            onClose();
+            return;
+        }
+
         if (!newReport.patient_name || !newReport.symptoms || !newReport.severity) {
             Toast.show({type: 'error', text1: 'Please fill all required fields.'});
             return;
         }
+        
         setLoading(true);
         
         try {
@@ -193,13 +218,15 @@ const NewReportModal = ({ visible, onClose, onSubmit }) => {
             await onSubmit(reportData);
             
             // Reset form after successful submission
-            setNewReport({
-                patient_name: "", age: "", gender: "", symptoms: "",
-                severity: "", water_source: "", treatment_given: "",
-                state: user?.state || "", 
-                district: user?.district || "",
-                village: user?.village || "",
-            });
+            if (user) {
+              setNewReport({
+                  patient_name: "", age: "", gender: "", symptoms: "",
+                  severity: "", water_source: "", treatment_given: "",
+                  state: user?.state || "", 
+                  district: user?.district || "",
+                  village: user?.village || "",
+              });
+            }
             
             onClose(); 
         } catch (error) {
@@ -216,14 +243,26 @@ const NewReportModal = ({ visible, onClose, onSubmit }) => {
                     <Text style={styles.modalTitle}>Submit New Health Report</Text>
                     
                     <Text style={styles.label}>Patient Name *</Text>
-                    <TextInput style={styles.input} value={newReport.patient_name} onChangeText={(text) => setNewReport({...newReport, patient_name: text})} />
+                    <TextInput 
+                      style={styles.input} 
+                      value={newReport.patient_name} 
+                      onChangeText={(text) => setNewReport({...newReport, patient_name: text})} 
+                    />
                     
                     <Text style={styles.label}>Age</Text>
-                    <TextInput style={styles.input} value={newReport.age} onChangeText={(text) => setNewReport({...newReport, age: text})} keyboardType="numeric" />
+                    <TextInput 
+                      style={styles.input} 
+                      value={newReport.age} 
+                      onChangeText={(text) => setNewReport({...newReport, age: text})} 
+                      keyboardType="numeric" 
+                    />
                     
                     <Text style={styles.label}>Gender</Text>
                     <View style={styles.pickerContainer}>
-                        <Picker selectedValue={newReport.gender} onValueChange={(val) => setNewReport({...newReport, gender: val})}>
+                        <Picker 
+                          selectedValue={newReport.gender} 
+                          onValueChange={(val) => setNewReport({...newReport, gender: val})}
+                        >
                             <Picker.Item label="Select Gender" value="" />
                             <Picker.Item label="Male" value="Male" />
                             <Picker.Item label="Female" value="Female" />
@@ -240,15 +279,23 @@ const NewReportModal = ({ visible, onClose, onSubmit }) => {
                     
                     <Text style={styles.label}>Symptoms *</Text>
                     <View style={styles.pickerContainer}>
-                        <Picker selectedValue={newReport.symptoms} onValueChange={(val) => setNewReport({...newReport, symptoms: val})}>
+                        <Picker 
+                          selectedValue={newReport.symptoms} 
+                          onValueChange={(val) => setNewReport({...newReport, symptoms: val})}
+                        >
                             <Picker.Item label="Select a symptom" value="" />
-                            {SYMPTOM_OPTIONS.map(symptom => <Picker.Item key={symptom} label={symptom} value={symptom} />)}
+                            {SYMPTOM_OPTIONS.map(symptom => (
+                              <Picker.Item key={symptom} label={symptom} value={symptom} />
+                            ))}
                         </Picker>
                     </View>
 
                     <Text style={styles.label}>Severity *</Text>
                     <View style={styles.pickerContainer}>
-                        <Picker selectedValue={newReport.severity} onValueChange={(val) => setNewReport({...newReport, severity: val})}>
+                        <Picker 
+                          selectedValue={newReport.severity} 
+                          onValueChange={(val) => setNewReport({...newReport, severity: val})}
+                        >
                             <Picker.Item label="Select Severity" value="" />
                             <Picker.Item label="Mild" value="Mild" />
                             <Picker.Item label="Moderate" value="Moderate" />
@@ -258,18 +305,36 @@ const NewReportModal = ({ visible, onClose, onSubmit }) => {
 
                     <Text style={styles.label}>Water Source</Text>
                     <View style={styles.pickerContainer}>
-                        <Picker selectedValue={newReport.water_source} onValueChange={(val) => setNewReport({...newReport, water_source: val})}>
+                        <Picker 
+                          selectedValue={newReport.water_source} 
+                          onValueChange={(val) => setNewReport({...newReport, water_source: val})}
+                        >
                             <Picker.Item label="Select water source" value="" />
-                            {WATER_SOURCE_OPTIONS.map(source => <Picker.Item key={source} label={source} value={source} />)}
+                            {WATER_SOURCE_OPTIONS.map(source => (
+                              <Picker.Item key={source} label={source} value={source} />
+                            ))}
                         </Picker>
                     </View>
 
                     <Text style={styles.label}>Treatment Given</Text>
-                    <TextInput style={[styles.input, {height: 100, textAlignVertical: 'top'}]} multiline value={newReport.treatment_given} onChangeText={(text) => setNewReport({...newReport, treatment_given: text})} />
+                    <TextInput 
+                      style={[styles.input, {height: 100, textAlignVertical: 'top'}]} 
+                      multiline 
+                      value={newReport.treatment_given} 
+                      onChangeText={(text) => setNewReport({...newReport, treatment_given: text})} 
+                    />
 
                     <View style={{marginVertical: 20}}>
-                        <TouchableOpacity style={[styles.button, styles.submitButton]} onPress={handleSubmit} disabled={loading}>
-                            {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Submit Report</Text>}
+                        <TouchableOpacity 
+                          style={[styles.button, styles.submitButton]} 
+                          onPress={handleSubmit} 
+                          disabled={loading}
+                        >
+                            {loading ? (
+                              <ActivityIndicator color="white" /> 
+                            ) : (
+                              <Text style={styles.buttonText}>Submit Report</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                     <Button title="Cancel" onPress={onClose} color="gray" />
@@ -283,40 +348,77 @@ const NewReportModal = ({ visible, onClose, onSubmit }) => {
 // --- MAIN DASHBOARD SCREEN ---
 
 const AshaWorkerDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading, isAuthenticated } = useAuth();
   const [showNewReport, setShowNewReport] = useState(false);
   const [reportPeriod, setReportPeriod] = useState("weekly");
   const [workerReports, setWorkerReports] = useState([]);
   const [statsFilter, setStatsFilter] = useState("weekly");
   const [diseaseStats, setDiseaseStats] = useState({});
   const [loading, setLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const isMountedRef = useRef(true);
+  const fetchAbortControllerRef = useRef(null);
 
   // Set mounted ref
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      // Cancel any ongoing fetch operations
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+      }
     };
   }, []);
 
+  // Handle back button to prevent crashes
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (showNewReport) {
+          setShowNewReport(false);
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [showNewReport])
+  );
+
   const fetchReports = async () => {
-    if (!user?.user_id || loading) return;
+    if (!user?.user_id || loading || !isMountedRef.current || !isAuthenticated) {
+      return;
+    }
+    
+    // Cancel previous request if still ongoing
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
     
     setLoading(true);
+    fetchAbortControllerRef.current = new AbortController();
+    
     try {
       const response = await api.get(`/data_collection/aasha_worker_reports/`, {
         params: { asha_worker_id: user.user_id, reportPeriod },
+        signal: fetchAbortControllerRef.current.signal
       });
       
-      if (isMountedRef.current) {
+      if (isMountedRef.current && user?.user_id && isAuthenticated) {
         setWorkerReports(response.data.reports || []);
       }
     } catch (error) {
+      if (error.name === 'CanceledError') {
+        console.log("Reports fetch was cancelled");
+        return;
+      }
+      
       console.error("Error fetching reports:", error);
-      if (isMountedRef.current) {
+      if (isMountedRef.current && user?.user_id && isAuthenticated) {
         Toast.show({type: 'error', text1: 'Could not fetch reports'});
-        setWorkerReports([]); // Set empty array on error
+        setWorkerReports([]);
       }
     } finally {
       if (isMountedRef.current) {
@@ -326,59 +428,118 @@ const AshaWorkerDashboard = () => {
   };
 
   const fetchStats = async () => {
-    if (!user?.user_id) return;
+    if (!user?.user_id || !isMountedRef.current || !isAuthenticated) {
+      return;
+    }
     
     try {
       const response = await api.get(`/data_collection/disease_stats/`, {
         params: { asha_worker_id: user.user_id, filter: statsFilter },
       });
       
-      if (isMountedRef.current) {
+      if (isMountedRef.current && user?.user_id && isAuthenticated) {
         setDiseaseStats(response.data.disease_counts || {});
       }
     } catch (error) {
       console.error("Error fetching stats:", error);
-      if (isMountedRef.current) {
+      if (isMountedRef.current && user?.user_id && isAuthenticated) {
         setDiseaseStats({});
       }
     }
   };
 
-  // Reset state when user changes
+  // Reset state when user changes or logs out
   useEffect(() => {
-    if (user) {
+    if (user?.user_id && isAuthenticated && isMountedRef.current) {
       setWorkerReports([]);
       setDiseaseStats({});
       setReportPeriod("weekly");
       setStatsFilter("weekly");
+    } else if (!user && !isAuthenticated) {
+      // Clear data when user logs out
+      setWorkerReports([]);
+      setDiseaseStats({});
     }
-  }, [user?.user_id]);
+  }, [user?.user_id, isAuthenticated]);
 
   useEffect(() => {
-    if (user?.user_id) {
+    if (user?.user_id && isAuthenticated && isMountedRef.current) {
       fetchReports();
     }
-  }, [reportPeriod, user?.user_id]);
+  }, [reportPeriod, user?.user_id, isAuthenticated]);
 
   useEffect(() => {
-    if (user?.user_id) {
+    if (user?.user_id && isAuthenticated && isMountedRef.current) {
       fetchStats();
     }
-  }, [statsFilter, user?.user_id]);
+  }, [statsFilter, user?.user_id, isAuthenticated]);
 
   const handleSubmitReport = async (reportData) => {
+    if (!user || !isAuthenticated) {
+      Toast.show({type: 'error', text1: 'Please login to submit reports.'});
+      return;
+    }
+
     try {
       await api.post(`/data_collection/health-reports/`, reportData);
       Toast.show({type: 'success', text1: 'Report submitted successfully!'});
       
-      // Only refetch if component is still mounted and user is still logged in
-      if (isMountedRef.current && user?.user_id) {
+      // Only refetch if component is still mounted and user is still authenticated
+      if (isMountedRef.current && user?.user_id && isAuthenticated) {
         fetchReports();
       }
     } catch (error) {
       console.error("Error submitting report:", error);
       Toast.show({type: 'error', text1: 'Failed to submit report.'});
     }
+  };
+
+  const handleLogout = async () => {
+    if (logoutLoading) return;
+
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            setLogoutLoading(true);
+            
+            try {
+              // Close any open modals first
+              setShowNewReport(false);
+              
+              // Clear local state immediately
+              setWorkerReports([]);
+              setDiseaseStats({});
+              
+              // Cancel any ongoing requests
+              if (fetchAbortControllerRef.current) {
+                fetchAbortControllerRef.current.abort();
+              }
+              
+              // Perform logout
+              await logout();
+            } catch (error) {
+              console.error("Logout error:", error);
+            } finally {
+              // Reset loading state after delay
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  setLogoutLoading(false);
+                }
+              }, 1000);
+            }
+          }
+        }
+      ]
+    );
   };
   
   const getSeverityStyle = (severity) => {
@@ -387,8 +548,20 @@ const AshaWorkerDashboard = () => {
     return styles.mildBadge;
   };
 
-  // Show loading or return early if no user
-  if (!user) {
+  // Show loading if auth is loading
+  if (authLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+          <ActivityIndicator size="large" />
+          <Text>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show message if no user or not authenticated
+  if (!user || !isAuthenticated) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
@@ -406,8 +579,16 @@ const AshaWorkerDashboard = () => {
             <Text style={styles.headerTitle}>ASHA Dashboard</Text>
             <Text style={styles.headerSubtitle}>Welcome, {user?.name || 'User'}</Text>
           </View>
-          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-            <LogOut size={22} color="#b91c1c" />
+          <TouchableOpacity 
+            onPress={handleLogout} 
+            style={styles.logoutButton}
+            disabled={logoutLoading}
+          >
+            {logoutLoading ? (
+              <ActivityIndicator size={22} color="#b91c1c" />
+            ) : (
+              <LogOut size={22} color="#b91c1c" />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -424,17 +605,25 @@ const AshaWorkerDashboard = () => {
               <View style={styles.filterContainer}>
                 <TouchableOpacity
                   style={[styles.filterButton, reportPeriod === 'weekly' && styles.activeFilter]}
-                  onPress={() => setReportPeriod('weekly')}>
+                  onPress={() => setReportPeriod('weekly')}
+                  disabled={loading}
+                >
                   <Text style={[styles.filterText, reportPeriod === 'weekly' && styles.activeFilterText]}>Weekly</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.filterButton, reportPeriod === 'monthly' && styles.activeFilter]}
-                  onPress={() => setReportPeriod('monthly')}>
+                  onPress={() => setReportPeriod('monthly')}
+                  disabled={loading}
+                >
                   <Text style={[styles.filterText, reportPeriod === 'monthly' && styles.activeFilterText]}>Monthly</Text>
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={[styles.button, styles.submitButton]} onPress={() => setShowNewReport(true)}>
+              <TouchableOpacity 
+                style={[styles.button, styles.submitButton]} 
+                onPress={() => setShowNewReport(true)}
+                disabled={!user || !isAuthenticated || loading}
+              >
                   <Text style={styles.buttonText}>New Report</Text>
               </TouchableOpacity>
             </View>
@@ -453,17 +642,19 @@ const AshaWorkerDashboard = () => {
                     <Text style={[styles.tableHeadText, {width: 120}]}>Water Source</Text>
                   </View>
                   {workerReports.length > 0 ? workerReports.map((report, index) => (
-                    <View key={`${report.id || index}-${report.date_of_reporting}`} style={styles.tableRow}>
-                      <Text style={[styles.tableCell, {width: 90}]}>{report.date_of_reporting}</Text>
-                      <Text style={[styles.tableCell, {width: 120}]}>{report.patient_name}</Text>
-                      <Text style={[styles.tableCell, {width: 40, textAlign: 'center'}]}>{report.age}</Text>
-                      <Text style={[styles.tableCell, {width: 150}]}>{report.symptoms}</Text>
+                    <View key={`${report.id || index}-${report.date_of_reporting || index}`} style={styles.tableRow}>
+                      <Text style={[styles.tableCell, {width: 90}]}>{report.date_of_reporting || 'N/A'}</Text>
+                      <Text style={[styles.tableCell, {width: 120}]}>{report.patient_name || 'N/A'}</Text>
+                      <Text style={[styles.tableCell, {width: 40, textAlign: 'center'}]}>{report.age || 0}</Text>
+                      <Text style={[styles.tableCell, {width: 150}]}>{report.symptoms || 'N/A'}</Text>
                       <View style={[styles.tableCell, {width: 90}]}>
                         <View style={[styles.badgeBase, getSeverityStyle(report.severity)]}>
-                          <Text style={[styles.badgeTextBase, getSeverityStyle(report.severity)]}>{report.severity}</Text>
+                          <Text style={[styles.badgeTextBase, getSeverityStyle(report.severity)]}>
+                            {report.severity || 'N/A'}
+                          </Text>
                         </View>
                       </View>
-                      <Text style={[styles.tableCell, {width: 120}]}>{report.water_source}</Text>
+                      <Text style={[styles.tableCell, {width: 120}]}>{report.water_source || 'N/A'}</Text>
                     </View>
                   )) : (
                     <Text style={styles.noReportsText}>No reports found for this period.</Text>
@@ -480,11 +671,19 @@ const AshaWorkerDashboard = () => {
           <View style={styles.card}>
               <Text style={styles.cardTitle}>Send Alerts</Text>
               <Text style={styles.cardDescription}>Report critical issues to the Ministry</Text>
-              <TouchableOpacity style={[styles.button, styles.alertButton]} onPress={() => Toast.show({type:'info', text1: 'Water Alert Sent!'})}>
+              <TouchableOpacity 
+                style={[styles.button, styles.alertButton]} 
+                onPress={() => Toast.show({type:'info', text1: 'Water Alert Sent!'})}
+                disabled={!user || !isAuthenticated}
+              >
                   <Droplets size={16} color="white" style={{marginRight: 8}} />
                   <Text style={styles.buttonText}>Send Water Contamination Alert</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.button, styles.alertButton, {marginTop: 10}]} onPress={() => Toast.show({type:'info', text1: 'Outbreak Alert Sent!'})}>
+              <TouchableOpacity 
+                style={[styles.button, styles.alertButton, {marginTop: 10}]} 
+                onPress={() => Toast.show({type:'info', text1: 'Outbreak Alert Sent!'})}
+                disabled={!user || !isAuthenticated}
+              >
                   <AlertTriangle size={16} color="white" style={{marginRight: 8}} />
                   <Text style={styles.buttonText}>Send Disease Outbreak Alert</Text>
               </TouchableOpacity>
