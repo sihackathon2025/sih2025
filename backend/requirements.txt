@@ -6,10 +6,12 @@ bcrypt==5.0.0
 billiard==4.2.2
 celery==5.5.3
 certifi==2025.8.3
+charset-normalizer==3.4.3
 click==8.3.0
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
+cron_descriptor==2.0.6
 dj-database-url==3.0.1
 Django==5.2.6
 django-celery-beat==2.8.1
@@ -19,10 +21,12 @@ django-redis==6.0.0
 django-timezone-field==7.1
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
+gunicorn==23.0.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
 idna==3.10
+joblib==1.5.2
 kombu==5.5.4
 numpy==2.3.3
 ollama==0.6.0
@@ -44,9 +48,10 @@ scipy==1.16.2
 six==1.17.0
 sniffio==1.3.1
 sqlparse==0.5.3
+threadpoolctl==3.6.0
 typing-inspection==0.4.1
 typing_extensions==4.15.0
 tzdata==2025.2
+urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.2.14
-gunicorn==23.0.0
