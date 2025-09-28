@@ -27,8 +27,7 @@ urlpatterns = [
     path('api/dashboard/', include('admindashboard.urls')),
     path('api/ngoData/', include('data_collection.urls')),
     path('api/users/', include('users.urls')),
-    path('api/prediction/', include('prediction.urls')),
-    path('api/dashboard/', include('admindashboard.urls')),
+   
 
 ]
 
