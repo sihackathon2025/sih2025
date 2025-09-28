@@ -16,10 +16,6 @@ click==8.2.1
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
-dj-database-url==3.0.1
-Django==5.2.6
-django-cors-headers==4.8.0
-django-environ==0.12.0
 cron_descriptor==2.0.6
 dj-database-url==3.0.1
 Django==5.2.6
@@ -50,12 +46,6 @@ psycopg2-binary==2.9.10
 pydantic==2.11.9
 pydantic_core==2.33.2
 PyJWT==2.10.1
-
-python-dateutil==2.9.0.post0
-python-decouple==3.8
-pytz==2025.2
-requests==2.32.5
-
 python-crontab==3.3.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
@@ -63,7 +53,6 @@ pytz==2025.2
 redis==5.2.1
 requests==2.32.5
 rest-framework-simplejwt==0.0.2
-
 scikit-learn==1.7.2
 scipy==1.16.2
 six==1.17.0
