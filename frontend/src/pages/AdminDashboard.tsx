@@ -896,8 +896,8 @@ const AdminDashboard = () => {
                     <span>
                       {selectedVillageData.latest_water_assessment_date
                         ? new Date(
-                            selectedVillageData.latest_water_assessment_date,
-                          ).toLocaleDateString()
+                          selectedVillageData.latest_water_assessment_date,
+                        ).toLocaleDateString()
                         : t("n_a")}
                     </span>
                   </div>
