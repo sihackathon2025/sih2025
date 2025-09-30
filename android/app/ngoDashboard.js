@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, TextInput, Switch, Alert, RefreshControl, BackHandler
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, TextInput, Switch, Alert, RefreshControl, BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../lib/AuthContext';
@@ -117,6 +121,7 @@ const VillageDataTable = ({ surveyedData, loading }) => {
   );
 };
 
+// --- UPDATED ADD DATA MODAL (Following index.js pattern with scroll fix) ---
 const AddDataModal = ({ visible, onClose, onSubmit, villages, loading }) => {
   const [form, setForm] = useState({
     village_id: null,
@@ -131,19 +136,22 @@ const AddDataModal = ({ visible, onClose, onSubmit, villages, loading }) => {
   });
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  const resetForm = () => {
-    setForm({
-      village_id: null,
-      clean_drinking_water: false,
-      toilet_coverage: "",
-      waste_disposal_system: false,
-      flooding_waterlogging: false,
-      awareness_campaigns: false,
-      typhoid_cases: "0",
-      fever_cases: "0",
-      diarrhea_cases: "0",
-    });
-  };
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!visible) {
+      setForm({
+        village_id: null,
+        clean_drinking_water: false,
+        toilet_coverage: "",
+        waste_disposal_system: false,
+        flooding_waterlogging: false,
+        awareness_campaigns: false,
+        typhoid_cases: "0",
+        fever_cases: "0",
+        diarrhea_cases: "0",
+      });
+    }
+  }, [visible]);
 
   const handleSubmit = async () => {
     if (!form.village_id) {
@@ -167,135 +175,144 @@ const AddDataModal = ({ visible, onClose, onSubmit, villages, loading }) => {
       };
       
       await onSubmit(payload);
-      resetForm();
     } finally {
       setSubmitLoading(false);
-    }
-  };
-
-  const handleClose = () => {
-    if (!submitLoading) {
-      resetForm();
-      onClose();
     }
   };
 
   return (
     <Modal 
       visible={visible} 
+      transparent={true} 
       animationType="slide" 
-      onRequestClose={handleClose} 
-      transparent
+      onRequestClose={() => onClose()}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.modalTitle}>Add Village Survey Data</Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalBackdrop} />
+          </TouchableWithoutFeedback>
+          <View style={styles.modalContent}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled={true}
+              scrollEnabled={true}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              <Text style={styles.modalTitle}>Add Village Survey Data</Text>
+              <Text style={styles.modalDescription}>Complete the survey details for a village</Text>
 
-            <Text style={styles.label}>Village *</Text>
-            <View style={styles.pickerContainer}>
-              <Picker 
-                selectedValue={form.village_id} 
-                onValueChange={v => setForm({ ...form, village_id: v })}
-                enabled={!submitLoading}
-              >
-                <Picker.Item label="-- Select Village --" value={null} />
-                {villages.map(v => (
-                  <Picker.Item 
-                    key={v.village_id} 
-                    label={v.village_name} 
-                    value={v.village_id} 
-                  />
-                ))}
-              </Picker>
-            </View>
+              <Text style={styles.label}>Village *</Text>
+              <View style={styles.pickerContainer}>
+                <Picker 
+                  selectedValue={form.village_id} 
+                  onValueChange={v => setForm({ ...form, village_id: v })}
+                  enabled={!submitLoading}
+                >
+                  <Picker.Item label="-- Select Village --" value={null} />
+                  {villages.map(v => (
+                    <Picker.Item 
+                      key={v.village_id} 
+                      label={v.village_name} 
+                      value={v.village_id} 
+                    />
+                  ))}
+                </Picker>
+              </View>
 
-            <FormFieldSwitch 
-              label="Clean Drinking Water Available" 
-              value={form.clean_drinking_water} 
-              onValueChange={v => setForm({ ...form, clean_drinking_water: v })}
-              disabled={submitLoading}
-            />
+              <FormFieldSwitch 
+                label="Clean Drinking Water Available" 
+                value={form.clean_drinking_water} 
+                onValueChange={v => setForm({ ...form, clean_drinking_water: v })}
+                disabled={submitLoading}
+              />
 
-            <FormFieldInput 
-              label="Toilet Coverage (%) *" 
-              value={form.toilet_coverage} 
-              onChangeText={v => setForm({ ...form, toilet_coverage: v })} 
-              keyboardType="numeric" 
-              editable={!submitLoading}
-            />
+              <FormFieldInput 
+                label="Toilet Coverage (%) *" 
+                value={form.toilet_coverage} 
+                onChangeText={v => setForm({ ...form, toilet_coverage: v })} 
+                keyboardType="numeric" 
+                editable={!submitLoading}
+                placeholder="Enter percentage (0-100)"
+              />
 
-            <FormFieldSwitch 
-              label="Waste Disposal System" 
-              value={form.waste_disposal_system} 
-              onValueChange={v => setForm({ ...form, waste_disposal_system: v })}
-              disabled={submitLoading}
-            />
+              <FormFieldSwitch 
+                label="Waste Disposal System" 
+                value={form.waste_disposal_system} 
+                onValueChange={v => setForm({ ...form, waste_disposal_system: v })}
+                disabled={submitLoading}
+              />
 
-            <FormFieldSwitch 
-              label="Flooding/Waterlogging Issues" 
-              value={form.flooding_waterlogging} 
-              onValueChange={v => setForm({ ...form, flooding_waterlogging: v })}
-              disabled={submitLoading}
-            />
+              <FormFieldSwitch 
+                label="Flooding/Waterlogging Issues" 
+                value={form.flooding_waterlogging} 
+                onValueChange={v => setForm({ ...form, flooding_waterlogging: v })}
+                disabled={submitLoading}
+              />
 
-            <FormFieldSwitch 
-              label="Awareness Campaigns Conducted" 
-              value={form.awareness_campaigns} 
-              onValueChange={v => setForm({ ...form, awareness_campaigns: v })}
-              disabled={submitLoading}
-            />
+              <FormFieldSwitch 
+                label="Awareness Campaigns Conducted" 
+                value={form.awareness_campaigns} 
+                onValueChange={v => setForm({ ...form, awareness_campaigns: v })}
+                disabled={submitLoading}
+              />
 
-            <Text style={styles.sectionTitle}>Disease Cases</Text>
-            
-            <FormFieldInput 
-              label="Typhoid Cases" 
-              value={form.typhoid_cases} 
-              onChangeText={v => setForm({ ...form, typhoid_cases: v })} 
-              keyboardType="numeric"
-              editable={!submitLoading}
-            />
+              <Text style={styles.sectionTitle}>Disease Cases</Text>
+              
+              <FormFieldInput 
+                label="Typhoid Cases" 
+                value={form.typhoid_cases} 
+                onChangeText={v => setForm({ ...form, typhoid_cases: v })} 
+                keyboardType="numeric"
+                editable={!submitLoading}
+                placeholder="Enter number of cases"
+              />
 
-            <FormFieldInput 
-              label="Fever Cases" 
-              value={form.fever_cases} 
-              onChangeText={v => setForm({ ...form, fever_cases: v })} 
-              keyboardType="numeric"
-              editable={!submitLoading}
-            />
+              <FormFieldInput 
+                label="Fever Cases" 
+                value={form.fever_cases} 
+                onChangeText={v => setForm({ ...form, fever_cases: v })} 
+                keyboardType="numeric"
+                editable={!submitLoading}
+                placeholder="Enter number of cases"
+              />
 
-            <FormFieldInput 
-              label="Diarrhea Cases" 
-              value={form.diarrhea_cases} 
-              onChangeText={v => setForm({ ...form, diarrhea_cases: v })} 
-              keyboardType="numeric"
-              editable={!submitLoading}
-            />
+              <FormFieldInput 
+                label="Diarrhea Cases" 
+                value={form.diarrhea_cases} 
+                onChangeText={v => setForm({ ...form, diarrhea_cases: v })} 
+                keyboardType="numeric"
+                editable={!submitLoading}
+                placeholder="Enter number of cases"
+              />
 
-            <View style={styles.modalActions}>
               <TouchableOpacity 
-                style={[styles.button, styles.primaryButton]} 
+                style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20, marginBottom: 10 }]} 
                 onPress={handleSubmit}
                 disabled={submitLoading}
               >
                 {submitLoading ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text style={styles.buttonText}>Submit Data</Text>
+                  <Text style={styles.buttonTextPrimary}>Submit Data</Text>
                 )}
               </TouchableOpacity>
-              
+
               <TouchableOpacity 
-                style={[styles.button, styles.secondaryButton]} 
-                onPress={handleClose}
+                style={[styles.button, styles.buttonSecondary, styles.buttonFullWidth, { marginBottom: 20 }]} 
+                onPress={() => onClose()}
                 disabled={submitLoading}
               >
-                <Text style={[styles.buttonText, { color: '#6b7280' }]}>Cancel</Text>
+                <Text style={styles.buttonTextSecondary}>Cancel</Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -310,13 +327,15 @@ const FormFieldInput = ({ label, style, ...props }) => (
 const FormFieldSwitch = ({ label, value, onValueChange, disabled }) => (
   <View style={[styles.formField, styles.switchField]}>
     <Text style={styles.label}>{label}</Text>
-    <Switch 
-      value={value} 
-      onValueChange={onValueChange}
-      disabled={disabled}
-      trackColor={{ false: '#f3f4f6', true: '#dcfce7' }}
-      thumbColor={value ? '#16a34a' : '#9ca3af'}
-    />
+    <View onStartShouldSetResponder={() => true}>
+      <Switch 
+        value={value} 
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{ false: '#f3f4f6', true: '#dcfce7' }}
+        thumbColor={value ? '#16a34a' : '#9ca3af'}
+      />
+    </View>
   </View>
 );
 
@@ -855,10 +874,26 @@ const styles = StyleSheet.create({
   primaryButton: { 
     backgroundColor: '#16a34a' 
   },
-  secondaryButton: {
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+  buttonDark: { 
+    backgroundColor: '#1F2937'
+  },
+  buttonSecondary: {
+    borderWidth: 2,
+    borderColor: '#2563EB',
+    backgroundColor: 'transparent',
+  },
+  buttonTextPrimary: { 
+    color: 'white', 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  buttonTextSecondary: { 
+    color: '#2563EB', 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  buttonFullWidth: { 
+    alignSelf: 'stretch' 
   },
   waterAlertButton: {
     backgroundColor: '#3b82f6',
@@ -942,34 +977,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  // Modal
+  // Modal (Updated to match index.js pattern with scroll fix)
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   modalOverlay: { 
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 
     backgroundColor: 'rgba(0,0,0,0.5)' 
   },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalContent: { 
     width: '90%', 
-    maxHeight: '90%', 
+    maxHeight: '85%', 
     backgroundColor: 'white', 
     borderRadius: 12, 
-    padding: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 8,
   },
   modalTitle: { 
-    fontSize: 20, 
+    fontSize: 22, 
     fontWeight: 'bold', 
-    marginBottom: 16,
+    marginBottom: 8,
     color: '#1f2937',
   },
-  modalActions: { 
-    marginTop: 20, 
-    gap: 10 
+  modalDescription: { 
+    fontSize: 14, 
+    color: '#6B717F', 
+    marginBottom: 16 
   },
   
   // Form Fields
@@ -983,15 +1029,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8 
   },
   label: { 
-    fontSize: 16, 
+    fontSize: 14, 
+    fontWeight: '500', 
     color: '#374151', 
-    marginBottom: 8,
-    fontWeight: '500',
+    marginBottom: 6,
+    marginTop: 10,
   },
   input: { 
     height: 44, 
     borderWidth: 1, 
-    borderColor: '#d1d5db', 
+    borderColor: '#D1D5DB', 
     borderRadius: 8, 
     paddingHorizontal: 12,
     fontSize: 16,
@@ -999,9 +1046,10 @@ const styles = StyleSheet.create({
   },
   pickerContainer: { 
     borderWidth: 1, 
-    borderColor: '#d1d5db', 
+    borderColor: '#D1D5DB', 
     borderRadius: 8,
     backgroundColor: '#ffffff',
+    marginBottom: 10,
   },
   sectionTitle: { 
     fontSize: 18, 
