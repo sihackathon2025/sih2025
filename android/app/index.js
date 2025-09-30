@@ -9,6 +9,10 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  KeyboardAvoidingView, 
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback ,
   Image,
   TextInput,
   Linking,
@@ -251,38 +255,74 @@ const LoginDialog = ({ isOpen, onOpenChange }) => {
   };
 
   return (
-    <Modal visible={isOpen} transparent={true} animationType="slide" onRequestClose={() => onOpenChange(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => onOpenChange(false)}>
-            <TouchableOpacity style={styles.modalContent} activeOpacity={1}>
-                <Text style={styles.modalTitle}>{t("login_to_health_portal")}</Text>
-                <Text style={styles.modalDescription}>{t("login_description")}</Text>
-                <Text style={styles.label}>{t("email")}</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="user@example.com" 
-                  value={email} 
-                  onChangeText={setEmail} 
-                  keyboardType="email-address" 
-                  autoComplete="email" 
-                  autoCapitalize="none"
-                />
-                <Text style={styles.label}>{t("password")}</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="Enter password" 
-                  value={password} 
-                  onChangeText={setPassword} 
-                  secureTextEntry 
-                />
-                <TouchableOpacity 
-                  style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20 }]} 
-                  onPress={handleLogin} 
-                  disabled={loading}
+    <Modal 
+      visible={isOpen} 
+      transparent={true} 
+      animationType="slide" 
+      onRequestClose={() => onOpenChange(false)}
+    >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <ScrollView 
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
                 >
-                  {loading ? <ActivityIndicator color="white"/> : <Text style={styles.buttonTextPrimary}>{t("login")}</Text>}
-                </TouchableOpacity>
-            </TouchableOpacity>
-        </TouchableOpacity>
+                  <Text style={styles.modalTitle}>{t("login_to_health_portal")}</Text>
+                  <Text style={styles.modalDescription}>{t("login_description")}</Text>
+                  
+                  <Text style={styles.label}>{t("email")}</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="user@example.com" 
+                    value={email} 
+                    onChangeText={setEmail} 
+                    keyboardType="email-address" 
+                    autoComplete="email" 
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  
+                  <Text style={styles.label}>{t("password")}</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Enter password" 
+                    value={password} 
+                    onChangeText={setPassword} 
+                    secureTextEntry 
+                    editable={!loading}
+                  />
+                  
+                  <TouchableOpacity 
+                    style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20, marginBottom: 10 }]} 
+                    onPress={handleLogin} 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="white"/> 
+                    ) : (
+                      <Text style={styles.buttonTextPrimary}>{t("login")}</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.button, styles.buttonSecondary, styles.buttonFullWidth]} 
+                    onPress={() => onOpenChange(false)}
+                    disabled={loading}
+                  >
+                    <Text style={styles.buttonTextSecondary}>Cancel</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -401,73 +441,103 @@ const RegisterDialog = ({ isOpen, onOpenChange, initialRole }) => {
     if (!isOpen) return null;
 
     return (
-        <Modal visible={isOpen} transparent={true} animationType="slide" onRequestClose={() => onOpenChange(false)}>
-            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => onOpenChange(false)}>
-                <TouchableOpacity style={styles.modalContent} activeOpacity={1}>
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <Text style={styles.modalTitle}>
-                            {t("register_as_a")} {getRoleDisplayName(selectedRole)}
-                        </Text>
-                        <Text style={styles.modalDescription}>{t("register_description")}</Text>
+        <Modal 
+          visible={isOpen} 
+          transparent={true} 
+          animationType="slide" 
+          onRequestClose={() => onOpenChange(false)}
+        >
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.modalOverlay}>
+                <TouchableWithoutFeedback>
+                  <View style={styles.modalContent}>
+                    <ScrollView 
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      nestedScrollEnabled={true}
+                    >
+                      <Text style={styles.modalTitle}>
+                          {t("register_as_a")} {getRoleDisplayName(selectedRole)}
+                      </Text>
+                      <Text style={styles.modalDescription}>{t("register_description")}</Text>
 
-                        <Text style={styles.label}>{getNameLabel(selectedRole)} *</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            value={form.name} 
-                            onChangeText={(text) => setForm(f => ({ ...f, name: text }))}
-                            placeholder={`Enter ${getNameLabel(selectedRole).toLowerCase()}`}
-                        />
-                        
-                        <Text style={styles.label}>{t("location")} *</Text>
-                        <LocationSelector
-                            state={form.state} 
-                            district={form.district} 
-                            village={form.village}
-                            onChange={handleLocationChange}
-                        />
+                      <Text style={styles.label}>{getNameLabel(selectedRole)} *</Text>
+                      <TextInput 
+                          style={styles.input} 
+                          value={form.name} 
+                          onChangeText={(text) => setForm(f => ({ ...f, name: text }))}
+                          placeholder={`Enter ${getNameLabel(selectedRole).toLowerCase()}`}
+                          editable={!loading}
+                      />
+                      
+                      <Text style={styles.label}>{t("location")} *</Text>
+                      <LocationSelector
+                          state={form.state} 
+                          district={form.district} 
+                          village={form.village}
+                          onChange={handleLocationChange}
+                      />
 
-                        <Text style={styles.label}>{t("email")} *</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            value={form.email} 
-                            onChangeText={(text) => setForm(f => ({ ...f, email: text }))} 
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            placeholder="Enter email address"
-                        />
-                        
-                        <Text style={styles.label}>{t("password")} *</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            value={form.password} 
-                            onChangeText={(text) => setForm(f => ({ ...f, password: text }))} 
-                            secureTextEntry 
-                            placeholder="Enter password"
-                        />
+                      <Text style={styles.label}>{t("email")} *</Text>
+                      <TextInput 
+                          style={styles.input} 
+                          value={form.email} 
+                          onChangeText={(text) => setForm(f => ({ ...f, email: text }))} 
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          placeholder="Enter email address"
+                          editable={!loading}
+                      />
+                      
+                      <Text style={styles.label}>{t("password")} *</Text>
+                      <TextInput 
+                          style={styles.input} 
+                          value={form.password} 
+                          onChangeText={(text) => setForm(f => ({ ...f, password: text }))} 
+                          secureTextEntry 
+                          placeholder="Enter password"
+                          editable={!loading}
+                      />
 
-                        <Text style={styles.label}>{t("confirm_password")} *</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            value={form.confirmPassword} 
-                            onChangeText={(text) => setForm(f => ({ ...f, confirmPassword: text }))} 
-                            secureTextEntry 
-                            placeholder="Confirm password"
-                        />
-                        
-                        <TouchableOpacity 
-                            style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20 }]} 
-                            onPress={handleRegister} 
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white"/> 
-                            ) : (
-                                <Text style={styles.buttonTextPrimary}>{t("create_account")}</Text>
-                            )}
-                        </TouchableOpacity>
+                      <Text style={styles.label}>{t("confirm_password")} *</Text>
+                      <TextInput 
+                          style={styles.input} 
+                          value={form.confirmPassword} 
+                          onChangeText={(text) => setForm(f => ({ ...f, confirmPassword: text }))} 
+                          secureTextEntry 
+                          placeholder="Confirm password"
+                          editable={!loading}
+                      />
+                      
+                      <TouchableOpacity 
+                          style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20, marginBottom: 10 }]} 
+                          onPress={handleRegister} 
+                          disabled={loading}
+                      >
+                          {loading ? (
+                              <ActivityIndicator color="white"/> 
+                          ) : (
+                              <Text style={styles.buttonTextPrimary}>{t("create_account")}</Text>
+                          )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.button, styles.buttonSecondary, styles.buttonFullWidth, { marginBottom: 20 }]} 
+                        onPress={() => onOpenChange(false)}
+                        disabled={loading}
+                      >
+                        <Text style={styles.buttonTextSecondary}>Cancel</Text>
+                      </TouchableOpacity>
                     </ScrollView>
-                </TouchableOpacity>
-            </TouchableOpacity>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </Modal>
     );
 };
@@ -544,7 +614,7 @@ const styles = StyleSheet.create({
   timelineStepContent: { flex: 1, backgroundColor: '#f8fafc', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' },
   timelineTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
   timelineDescription: { fontSize: 14, color: '#4B5563', marginTop: 4 },
-  stateCardsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', padding: 10, marginTop: 20 },
+  stateCardsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', padding: 10, marginTop: 20, marginBottom: -150 },
   stateCard: { width: '45%', aspectRatio: 1, margin: '2.5%', borderRadius: 12, justifyContent: 'center', alignItems: 'center', padding: 10 },
   stateCardText: { marginTop: 8, fontSize: 14, fontWeight: '600', color: '#1F2937', textAlign: 'center' },
   footer: { padding: 24, backgroundColor: '#1e3a8a', alignItems: 'center' },
@@ -554,4 +624,25 @@ const styles = StyleSheet.create({
   langModalContent: { backgroundColor: 'white', borderRadius: 10, padding: 10, position: 'absolute', top: 70, right: 16, minWidth: 120, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
   langOption: { paddingVertical: 12, paddingHorizontal: 16 },
   langOptionText: { fontSize: 16 },
+    keyboardAvoidingView: {
+    flex: 1,
+  },
+  modalOverlay: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0,0,0,0.5)' 
+  },
+  modalContent: { 
+    width: '90%', 
+    maxHeight: '85%', 
+    backgroundColor: 'white', 
+    borderRadius: 12, 
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
 });

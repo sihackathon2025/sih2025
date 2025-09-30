@@ -77,7 +77,8 @@ export const clearAuth = async () => {
 
 // AXIOS INSTANCE CONFIGURATION
 // const API_BASE_URL = "https://depreciatively-unslouchy-mikki.ngrok-free.dev/api"; // Update with your actual IP
-const API_BASE_URL = "http://192.168.237.67:8000/api"; // For Expo GOo App
+// const API_BASE_URL = "http://192.168.237.67:8000/api"; // For Expo GOo App
+const API_BASE_URL = "https://sih2025-cddm.onrender.com/api"; // For Expo GOo App
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 
