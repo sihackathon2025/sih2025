@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
-  KeyboardAvoidingView, 
+  KeyboardAvoidingView,
   Platform,
   Keyboard,
-  TouchableWithoutFeedback ,
+  TouchableWithoutFeedback,
   Image,
   TextInput,
   Linking,
@@ -20,9 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import '../lib/i18n';
-import { useRouter } from "expo-router";
 import Toast from 'react-native-toast-message';
-import { Picker } from '@react-native-picker/picker';
 import {
   ShieldCheck, HandHeart, Hospital, ArrowRight, DatabaseZap, GitBranch, Siren, BrainCircuit,
   Megaphone, Globe, Mountain, Coffee, Swords, CloudRain, Feather, Snowflake, Building, SquareStack
@@ -54,33 +52,60 @@ const ProcessTimeline = ({ steps }) => {
   );
 };
 
+const CredentialExamples = ({ onSelect }) => {
+  const examples = [
+    { role: 'Admin', email: 'admin@mdoner.gov.in', pass: 'admin@123' },
+    { role: 'ASHA', email: 'ram.asha@gmail.com', pass: '12345' },
+    { role: 'NGO', email: 'contact@nehealthngo.org', pass: 'contact123' },
+    { role: 'Clinic', email: 'info@kohimamedical.com', pass: 'info123' },
+  ];
+
+  return (
+    <View style={styles.credentialsContainer}>
+      <Text style={styles.credentialsTitle}>Example Credentials</Text>
+      {examples.map((ex) => (
+        <TouchableOpacity
+          key={ex.role}
+          style={styles.credentialRow}
+          onPress={() => onSelect(ex.email, ex.pass)}
+        >
+          <Text style={styles.credentialText}>
+            <Text style={styles.credentialRole}>{ex.role}: </Text>
+            {ex.email} (pass: {ex.pass})
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+
 const StateCards = () => {
-    const { t } = useTranslation();
-    const statesData = [
-        { nameKey: "arunachal_pradesh", icon: <Mountain size={28} />, url: "https://health.arunachal.gov.in/", color: '#dbeafe' },
-        { nameKey: "assam", icon: <Coffee size={28} />, url: "https://dhs.assam.gov.in/", color: '#dcfce7' },
-        { nameKey: "manipur", icon: <Swords size={28} />, url: "https://manipur.mygov.in/group/directorate-health-services/", color: '#ede9fe' },
-        { nameKey: "meghalaya", icon: <CloudRain size={28} />, url: "https://meghealth.gov.in/", color: '#e5e7eb' },
-        { nameKey: "mizoram", icon: <SquareStack size={28} />, url: "https://health.mizoram.gov.in/", color: '#fce7f3' },
-        { nameKey: "nagaland", icon: <Feather size={28} />, url: "https://nagahealth.nagaland.gov.in/", color: '#fef3c7' },
-        { nameKey: "sikkim", icon: <Snowflake size={28} />, url: "https://www.sikkim.gov.in/departments/health-family-welfare-department", color: '#fee2e2' },
-        { nameKey: "tripura", icon: <Building size={28} />, url: "https://health.tripura.gov.in/", color: '#ffedd5' },
-    ];
+  const { t } = useTranslation();
+  const statesData = [
+    { nameKey: "arunachal_pradesh", icon: <Mountain size={28} />, url: "https://health.arunachal.gov.in/", color: '#dbeafe' },
+    { nameKey: "assam", icon: <Coffee size={28} />, url: "https://dhs.assam.gov.in/", color: '#dcfce7' },
+    { nameKey: "manipur", icon: <Swords size={28} />, url: "https://manipur.mygov.in/group/directorate-health-services/", color: '#ede9fe' },
+    { nameKey: "meghalaya", icon: <CloudRain size={28} />, url: "https://meghealth.gov.in/", color: '#e5e7eb' },
+    { nameKey: "mizoram", icon: <SquareStack size={28} />, url: "https://health.mizoram.gov.in/", color: '#fce7f3' },
+    { nameKey: "nagaland", icon: <Feather size={28} />, url: "https://nagahealth.nagaland.gov.in/", color: '#fef3c7' },
+    { nameKey: "sikkim", icon: <Snowflake size={28} />, url: "https://www.sikkim.gov.in/departments/health-family-welfare-department", color: '#fee2e2' },
+    { nameKey: "tripura", icon: <Building size={28} />, url: "https://health.tripura.gov.in/", color: '#ffedd5' },
+  ];
 
-    const handlePress = (url) => {
-        Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
-    };
+  const handlePress = (url) => {
+    Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
+  };
 
-    return (
-        <View style={styles.stateCardsContainer}>
-            {statesData.map((state) => (
-                <TouchableOpacity key={state.nameKey} style={[styles.stateCard, { backgroundColor: state.color }]} onPress={() => handlePress(state.url)}>
-                    {state.icon}
-                    <Text style={styles.stateCardText}>{t(state.nameKey)}</Text>
-                </TouchableOpacity>
-            ))}
-        </View>
-    );
+  return (
+    <View style={styles.stateCardsContainer}>
+      {statesData.map((state) => (
+        <TouchableOpacity key={state.nameKey} style={[styles.stateCard, { backgroundColor: state.color }]} onPress={() => handlePress(state.url)}>
+          {state.icon}
+          <Text style={styles.stateCardText}>{t(state.nameKey)}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 };
 
 const LanguageSelectorModal = ({ visible, onClose }) => {
@@ -164,7 +189,7 @@ const HeroSection = ({ onRegisterClick, onLoginClick }) => {
 const WhoWeServeSection = ({ onRegisterClick }) => {
   const { t } = useTranslation();
   const roles = [
-    { icon: <HandHeart size={32} color="#15803d" />, role: "asha_worker", title: t("asha_workers"), description: t("asha_description"), color: '#f0fdf4'},
+    { icon: <HandHeart size={32} color="#15803d" />, role: "asha_worker", title: t("asha_workers"), description: t("asha_description"), color: '#f0fdf4' },
     { icon: <ShieldCheck size={32} color="#1d4ed8" />, role: "ngo", title: t("ngos"), description: t("ngo_description"), color: '#eff6ff' },
     { icon: <Hospital size={32} color="#b91c1c" />, role: "clinic", title: t("clinics"), description: t("clinic_description"), color: '#fef2f2' },
   ];
@@ -174,7 +199,7 @@ const WhoWeServeSection = ({ onRegisterClick }) => {
       <Text style={styles.sectionTitle}>{t("who_we_serve")}</Text>
       <Text style={styles.sectionDescription}>{t("dedicated_platform_description")}</Text>
       {roles.map((roleInfo) => (
-        <View key={roleInfo.role} style={[styles.roleCard, {backgroundColor: roleInfo.color}]}>
+        <View key={roleInfo.role} style={[styles.roleCard, { backgroundColor: roleInfo.color }]}>
           <View style={styles.roleIconContainer}>{roleInfo.icon}</View>
           <Text style={styles.roleTitle}>{roleInfo.title}</Text>
           <Text style={styles.roleDescription}>{roleInfo.description}</Text>
@@ -183,39 +208,39 @@ const WhoWeServeSection = ({ onRegisterClick }) => {
             <ArrowRight size={16} color="white" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
         </View>
-      ))}
+      ))} 
     </View>
   );
 };
 
 const HowItWorksSection = () => {
-    const { t } = useTranslation();
-    const steps = [
-        { icon: <DatabaseZap size={24} color="#3b82f6" />, title: t("data_collection"), description: t("data_collection_description")},
-        { icon: <GitBranch size={24} color="#f97316" />, title: t("rule_based_filtering"), description: t("rule_based_filtering_description")},
-        { icon: <Siren size={24} color="#eab308" />, title: t("early_warnings"), description: t("early_warnings_description")},
-        { icon: <BrainCircuit size={24} color="#8b5cf6" />, title: t("llm_powered_prediction"), description: t("llm_powered_prediction_description")},
-        { icon: <Megaphone size={24} color="#ef4444" />, title: t("high_level_alerts"), description: t("high_level_alerts_description")},
-    ];
-    return (
-        <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t("how_it_works")}</Text>
-            <Text style={styles.sectionDescription}>{t("process_description")}</Text>
-            <ProcessTimeline steps={steps}/>
-        </View>
-    );
+  const { t } = useTranslation();
+  const steps = [
+    { icon: <DatabaseZap size={24} color="#3b82f6" />, title: t("data_collection"), description: t("data_collection_description") },
+    { icon: <GitBranch size={24} color="#f97316" />, title: t("rule_based_filtering"), description: t("rule_based_filtering_description") },
+    { icon: <Siren size={24} color="#eab308" />, title: t("early_warnings"), description: t("early_warnings_description") },
+    { icon: <BrainCircuit size={24} color="#8b5cf6" />, title: t("llm_powered_prediction"), description: t("llm_powered_prediction_description") },
+    { icon: <Megaphone size={24} color="#ef4444" />, title: t("high_level_alerts"), description: t("high_level_alerts_description") },
+  ];
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{t("how_it_works")}</Text>
+      <Text style={styles.sectionDescription}>{t("process_description")}</Text>
+      <ProcessTimeline steps={steps} />
+    </View>
+  );
 };
 
 const AppFooter = () => {
-    const { t } = useTranslation();
-    return (
-        <View style={styles.footer}>
-            <Text style={styles.footerTitle}>{t("ministry_of_development")}</Text>
-            <Text style={styles.footerSubtitle}>{t("north_eastern_region")}</Text>
-            <Text style={styles.footerText}>{t("government_of_india")}</Text>
-            <Text style={styles.footerText}>© 2025 {t("all_rights_reserved")}</Text>
-        </View>
-    );
+  const { t } = useTranslation();
+  return (
+    <View style={styles.footer}>
+      <Text style={styles.footerTitle}>{t("ministry_of_development")}</Text>
+      <Text style={styles.footerSubtitle}>{t("north_eastern_region")}</Text>
+      <Text style={styles.footerText}>{t("government_of_india")}</Text>
+      <Text style={styles.footerText}>© 2025 {t("all_rights_reserved")}</Text>
+    </View>
+  );
 };
 
 const LoginDialog = ({ isOpen, onOpenChange }) => {
@@ -225,7 +250,6 @@ const LoginDialog = ({ isOpen, onOpenChange }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setEmail('');
@@ -255,13 +279,13 @@ const LoginDialog = ({ isOpen, onOpenChange }) => {
   };
 
   return (
-    <Modal 
-      visible={isOpen} 
-      transparent={true} 
-      animationType="slide" 
+    <Modal
+      visible={isOpen}
+      transparent={true}
+      animationType="slide"
       onRequestClose={() => onOpenChange(false)}
     >
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
@@ -269,49 +293,56 @@ const LoginDialog = ({ isOpen, onOpenChange }) => {
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={styles.modalContent}>
-                <ScrollView 
+                <ScrollView
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
                   <Text style={styles.modalTitle}>{t("login_to_health_portal")}</Text>
                   <Text style={styles.modalDescription}>{t("login_description")}</Text>
-                  
+
                   <Text style={styles.label}>{t("email")}</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="user@example.com" 
-                    value={email} 
-                    onChangeText={setEmail} 
-                    keyboardType="email-address" 
-                    autoComplete="email" 
+                  <TextInput
+                    style={styles.input}
+                    placeholder="user@example.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoComplete="email"
                     autoCapitalize="none"
                     editable={!loading}
                   />
-                  
+
                   <Text style={styles.label}>{t("password")}</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="Enter password" 
-                    value={password} 
-                    onChangeText={setPassword} 
-                    secureTextEntry 
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
                     editable={!loading}
                   />
-                  
-                  <TouchableOpacity 
-                    style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20, marginBottom: 10 }]} 
-                    onPress={handleLogin} 
+
+                  <CredentialExamples
+                    onSelect={(selectedEmail, selectedPassword) => {
+                      setEmail(selectedEmail);
+                      setPassword(selectedPassword);
+                    }}
+                  />
+
+                  <TouchableOpacity
+                    style={[styles.button, styles.buttonDark, { marginTop: 20 }]}
+                    onPress={handleLogin}
                     disabled={loading}
                   >
                     {loading ? (
-                      <ActivityIndicator color="white"/> 
+                      <ActivityIndicator color="white" />
                     ) : (
                       <Text style={styles.buttonTextPrimary}>{t("login")}</Text>
                     )}
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={[styles.button, styles.buttonSecondary, styles.buttonFullWidth]} 
+                  <TouchableOpacity
+                    style={[styles.button, styles.buttonSecondary]}
                     onPress={() => onOpenChange(false)}
                     disabled={loading}
                   >
@@ -329,217 +360,217 @@ const LoginDialog = ({ isOpen, onOpenChange }) => {
 
 // --- FIXED REGISTER DIALOG ---
 const RegisterDialog = ({ isOpen, onOpenChange, initialRole }) => {
-    const { t } = useTranslation();
-    const { login } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState(initialRole);
-    const formInitialized = useRef(false);
+  const { t } = useTranslation();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(initialRole);
+  const formInitialized = useRef(false);
 
-    const [form, setForm] = useState({
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", confirmPassword: "",
+    state: "", district: "", village: "",
+  });
+
+  // Update the role if the initialRole prop changes
+  useEffect(() => {
+    if (initialRole && initialRole !== selectedRole) {
+      setSelectedRole(initialRole);
+    }
+  }, [initialRole]);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen && !formInitialized.current) {
+      setForm({
         name: "", email: "", password: "", confirmPassword: "",
         state: "", district: "", village: "",
-    });
+      });
+      formInitialized.current = true;
+    } else if (!isOpen) {
+      formInitialized.current = false;
+    }
+  }, [isOpen]);
 
-    // Update the role if the initialRole prop changes
-    useEffect(() => {
-        if (initialRole && initialRole !== selectedRole) {
-            setSelectedRole(initialRole);
-        }
-    }, [initialRole]);
+  const handleLocationChange = (field, value) => {
+    setForm(prevForm => ({
+      ...prevForm,
+      [field]: value || ""
+    }));
+  };
 
-    // Reset form when modal opens
-    useEffect(() => {
-        if (isOpen && !formInitialized.current) {
-            setForm({
-                name: "", email: "", password: "", confirmPassword: "",
-                state: "", district: "", village: "",
-            });
-            formInitialized.current = true;
-        } else if (!isOpen) {
-            formInitialized.current = false;
-        }
-    }, [isOpen]);
+  const handleRegister = async () => {
+    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
+      Toast.show({ type: 'error', text1: "Please fill all required fields" });
+      return;
+    }
 
-    const handleLocationChange = (field, value) => {
-        setForm(prevForm => ({
-            ...prevForm,
-            [field]: value || ""
-        }));
+    if (form.password !== form.confirmPassword) {
+      Toast.show({ type: 'error', text1: t("passwords_do_not_match") });
+      return;
+    }
+
+    if (!form.state) {
+      Toast.show({ type: 'error', text1: "Please select a state" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Step 1: Register the user
+      await api.post("/users/register/", {
+        name: form.name,
+        role: selectedRole,
+        state: form.state,
+        district: form.district || "",
+        village: form.village || "",
+        email: form.email,
+        password: form.password,
+        password2: form.confirmPassword,
+      });
+
+      Toast.show({ type: 'success', text1: t("registration_successful") });
+
+      // Step 2: Automatically log them in
+      const loginResult = await login(form.email, form.password);
+
+      if (loginResult.success) {
+        onOpenChange(false); // Close modal
+      } else {
+        Toast.show({ type: 'error', text1: "Registration successful but login failed. Please login manually." });
+      }
+
+    } catch (error) {
+      console.error("Registration error:", error);
+      const errorMessage = error.response?.data?.email?.[0] ||
+        error.response?.data?.error ||
+        error.response?.data?.detail ||
+        t("registration_failed");
+      Toast.show({ type: 'error', text1: errorMessage });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoleDisplayName = (role) => {
+    const roleMap = {
+      asha_worker: t("asha_workers"),
+      ngo: t("ngos"),
+      clinic: t("clinics")
     };
-    
-    const handleRegister = async () => {
-        if (!form.name || !form.email || !form.password || !form.confirmPassword) {
-            Toast.show({ type: 'error', text1: "Please fill all required fields" });
-            return;
-        }
+    return roleMap[role] || role;
+  };
 
-        if (form.password !== form.confirmPassword) {
-            Toast.show({ type: 'error', text1: t("passwords_do_not_match") });
-            return;
-        }
-
-        if (!form.state) {
-            Toast.show({ type: 'error', text1: "Please select a state" });
-            return;
-        }
-
-        setLoading(true);
-        try {
-            // Step 1: Register the user
-            await api.post("/users/register/", {
-                name: form.name, 
-                role: selectedRole, 
-                state: form.state,
-                district: form.district || "", 
-                village: form.village || "", 
-                email: form.email,
-                password: form.password, 
-                password2: form.confirmPassword,
-            });
-
-            Toast.show({ type: 'success', text1: t("registration_successful") });
-            
-            // Step 2: Automatically log them in
-            const loginResult = await login(form.email, form.password);
-            
-            if (loginResult.success) {
-                onOpenChange(false); // Close modal
-            } else {
-                Toast.show({ type: 'error', text1: "Registration successful but login failed. Please login manually." });
-            }
-
-        } catch (error) {
-            console.error("Registration error:", error);
-            const errorMessage = error.response?.data?.email?.[0] || 
-                               error.response?.data?.error || 
-                               error.response?.data?.detail || 
-                               t("registration_failed");
-            Toast.show({ type: 'error', text1: errorMessage });
-        } finally {
-            setLoading(false);
-        }
+  const getNameLabel = (role) => {
+    const labelMap = {
+      asha_worker: t("full_name"),
+      ngo: t("ngo_name"),
+      clinic: t("clinic_name")
     };
-    
-    const getRoleDisplayName = (role) => {
-        const roleMap = {
-            asha_worker: t("asha_workers"), 
-            ngo: t("ngos"), 
-            clinic: t("clinics")
-        };
-        return roleMap[role] || role;
-    };
+    return labelMap[role] || t("name");
+  };
 
-    const getNameLabel = (role) => {
-        const labelMap = {
-            asha_worker: t("full_name"), 
-            ngo: t("ngo_name"), 
-            clinic: t("clinic_name")
-        };
-        return labelMap[role] || t("name");
-    };
+  if (!isOpen) return null;
 
-    if (!isOpen) return null;
+  return (
+    <Modal
+      visible={isOpen}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => onOpenChange(false)}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled={true}
+                >
+                  <Text style={styles.modalTitle}>
+                    {t("register_as_a")} {getRoleDisplayName(selectedRole)}
+                  </Text>
+                  <Text style={styles.modalDescription}>{t("register_description")}</Text>
 
-    return (
-        <Modal 
-          visible={isOpen} 
-          transparent={true} 
-          animationType="slide" 
-          onRequestClose={() => onOpenChange(false)}
-        >
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardAvoidingView}
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={styles.modalOverlay}>
-                <TouchableWithoutFeedback>
-                  <View style={styles.modalContent}>
-                    <ScrollView 
-                      showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                      nestedScrollEnabled={true}
-                    >
-                      <Text style={styles.modalTitle}>
-                          {t("register_as_a")} {getRoleDisplayName(selectedRole)}
-                      </Text>
-                      <Text style={styles.modalDescription}>{t("register_description")}</Text>
+                  <Text style={styles.label}>{getNameLabel(selectedRole)} *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.name}
+                    onChangeText={(text) => setForm(f => ({ ...f, name: text }))}
+                    placeholder={`Enter ${getNameLabel(selectedRole).toLowerCase()}`}
+                    editable={!loading}
+                  />
 
-                      <Text style={styles.label}>{getNameLabel(selectedRole)} *</Text>
-                      <TextInput 
-                          style={styles.input} 
-                          value={form.name} 
-                          onChangeText={(text) => setForm(f => ({ ...f, name: text }))}
-                          placeholder={`Enter ${getNameLabel(selectedRole).toLowerCase()}`}
-                          editable={!loading}
-                      />
-                      
-                      <Text style={styles.label}>{t("location")} *</Text>
-                      <LocationSelector
-                          state={form.state} 
-                          district={form.district} 
-                          village={form.village}
-                          onChange={handleLocationChange}
-                      />
+                  <Text style={styles.label}>{t("location")} *</Text>
+                  <LocationSelector
+                    state={form.state}
+                    district={form.district}
+                    village={form.village}
+                    onChange={handleLocationChange}
+                  />
 
-                      <Text style={styles.label}>{t("email")} *</Text>
-                      <TextInput 
-                          style={styles.input} 
-                          value={form.email} 
-                          onChangeText={(text) => setForm(f => ({ ...f, email: text }))} 
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          placeholder="Enter email address"
-                          editable={!loading}
-                      />
-                      
-                      <Text style={styles.label}>{t("password")} *</Text>
-                      <TextInput 
-                          style={styles.input} 
-                          value={form.password} 
-                          onChangeText={(text) => setForm(f => ({ ...f, password: text }))} 
-                          secureTextEntry 
-                          placeholder="Enter password"
-                          editable={!loading}
-                      />
+                  <Text style={styles.label}>{t("email")} *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.email}
+                    onChangeText={(text) => setForm(f => ({ ...f, email: text }))}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholder="Enter email address"
+                    editable={!loading}
+                  />
 
-                      <Text style={styles.label}>{t("confirm_password")} *</Text>
-                      <TextInput 
-                          style={styles.input} 
-                          value={form.confirmPassword} 
-                          onChangeText={(text) => setForm(f => ({ ...f, confirmPassword: text }))} 
-                          secureTextEntry 
-                          placeholder="Confirm password"
-                          editable={!loading}
-                      />
-                      
-                      <TouchableOpacity 
-                          style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20, marginBottom: 10 }]} 
-                          onPress={handleRegister} 
-                          disabled={loading}
-                      >
-                          {loading ? (
-                              <ActivityIndicator color="white"/> 
-                          ) : (
-                              <Text style={styles.buttonTextPrimary}>{t("create_account")}</Text>
-                          )}
-                      </TouchableOpacity>
+                  <Text style={styles.label}>{t("password")} *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.password}
+                    onChangeText={(text) => setForm(f => ({ ...f, password: text }))}
+                    secureTextEntry
+                    placeholder="Enter password"
+                    editable={!loading}
+                  />
 
-                      <TouchableOpacity 
-                        style={[styles.button, styles.buttonSecondary, styles.buttonFullWidth, { marginBottom: 20 }]} 
-                        onPress={() => onOpenChange(false)}
-                        disabled={loading}
-                      >
-                        <Text style={styles.buttonTextSecondary}>Cancel</Text>
-                      </TouchableOpacity>
-                    </ScrollView>
-                  </View>
-                </TouchableWithoutFeedback>
+                  <Text style={styles.label}>{t("confirm_password")} *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.confirmPassword}
+                    onChangeText={(text) => setForm(f => ({ ...f, confirmPassword: text }))}
+                    secureTextEntry
+                    placeholder="Confirm password"
+                    editable={!loading}
+                  />
+
+                  <TouchableOpacity
+                    style={[styles.button, styles.buttonDark, styles.buttonFullWidth, { marginTop: 20, marginBottom: 10 }]}
+                    onPress={handleRegister}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text style={styles.buttonTextPrimary}>{t("create_account")}</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.button, styles.buttonSecondary, styles.buttonFullWidth, { marginBottom: 20 }]}
+                    onPress={() => onOpenChange(false)}
+                    disabled={loading}
+                  >
+                    <Text style={styles.buttonTextSecondary}>Cancel</Text>
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
             </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </Modal>
-    );
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
 };
 
 // --- MAIN LANDING SCREEN ---
@@ -552,7 +583,7 @@ export default function LandingScreen() {
     setInitialRole(role);
     setIsRegisterOpen(true);
   };
-  
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <AppHeader onLoginClick={() => setIsLoginOpen(true)} />
@@ -587,7 +618,7 @@ const styles = StyleSheet.create({
   heroButtonContainer: { flexDirection: 'column', alignSelf: 'stretch', marginTop: 24 },
   button: { paddingVertical: 14, paddingHorizontal: 32, borderRadius: 8, marginVertical: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   buttonPrimary: { backgroundColor: '#16a34a' },
-  buttonDark: { backgroundColor: '#1F2937'},
+  buttonDark: { backgroundColor: '#1F2937' },
   buttonTextPrimary: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   buttonSecondary: { borderWidth: 2, borderColor: '#2563EB' },
   buttonTextSecondary: { color: '#2563EB', fontSize: 16, fontWeight: 'bold' },
@@ -624,20 +655,20 @@ const styles = StyleSheet.create({
   langModalContent: { backgroundColor: 'white', borderRadius: 10, padding: 10, position: 'absolute', top: 70, right: 16, minWidth: 120, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
   langOption: { paddingVertical: 12, paddingHorizontal: 16 },
   langOptionText: { fontSize: 16 },
-    keyboardAvoidingView: {
+  keyboardAvoidingView: {
     flex: 1,
   },
-  modalOverlay: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: 'rgba(0,0,0,0.5)' 
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
   },
-  modalContent: { 
-    width: '90%', 
-    maxHeight: '85%', 
-    backgroundColor: 'white', 
-    borderRadius: 12, 
+  modalContent: {
+    width: '90%',
+    maxHeight: '85%',
+    backgroundColor: 'white',
+    borderRadius: 12,
     padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -645,4 +676,100 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '85%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#1f2937',
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#6B717F',
+    marginBottom: 16
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 6,
+    marginTop: 10,
+  },
+  input: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    backgroundColor: '#ffffff',
+  },
+  button: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 10,
+  },
+  buttonDark: {
+    backgroundColor: '#1F2937'
+  },
+  buttonSecondary: {
+    borderWidth: 2,
+    borderColor: '#2563EB',
+    backgroundColor: 'transparent',
+  },
+  buttonTextPrimary: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  buttonTextSecondary: {
+    color: '#2563EB',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  // --- NEW STYLES FOR CREDENTIALS ---
+  credentialsContainer: {
+    marginTop: 16,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  credentialsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  credentialRow: {
+    paddingVertical: 4,
+  },
+  credentialText: {
+    fontSize: 13,
+    color: '#4b5563',
+    lineHeight: 18,
+  },
+  credentialRole: {
+    fontWeight: 'bold',
+  }
 });
